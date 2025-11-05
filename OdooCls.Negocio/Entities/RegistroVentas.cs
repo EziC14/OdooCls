@@ -1,0 +1,82 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace OdooCls.Core.Entities
+{
+    public  class RegistroVentas
+    {
+        public int RVEJER { get; set; } = 0;
+        public int RVPERI { get; set; } = 0;
+        public string RVTDOC { get; set; } = "";
+        public string RVNDOC { get; set; } = "";
+        public int RVFECH { get; set; } = 0;
+        public string RVCCLI { get; set; } = "";
+        public string RVCLIE { get; set; } = "";
+        public int RVMONE { get; set; } = 0;
+        public decimal RVTCAM { get; set; } = 0;
+        public decimal RVVALV { get; set; } = 0;
+        public string RVCVAL { get; set; } = "*Multiple";
+        public string RVMVAL { get; set; } = "";
+        public decimal RVVALI { get; set; } = 0;
+        public string RVCVAI { get; set; } = "*Multiple";
+        public string RVMVAI { get; set; } = "";
+        public decimal RVDSCT { get; set; } = 0;
+        public string RVCDSC { get; set; } = "*Multiple";
+        public string RVMDSC { get; set; } = "";
+        public decimal RVIGV { get; set; } = 0;
+        public string RVCIGV { get; set; } = "4011001";
+        public string RVMIGV { get; set; } = "";
+        public decimal RVIMP2 { get; set; } = 0;
+        public string RVCIM2 { get; set; } = "";
+        public string RVMIM2 { get; set; } = "";
+        public decimal RVIMP3 { get; set; } = 0;
+        public string RVCIM3 { get; set; } = "";
+        public string RVMIM3 { get; set; } = "";
+        public decimal RVRET1 { get; set; } = 0;
+        public string RVCRE1 { get; set; } = "";
+        public string RVMRE1 { get; set; } = "";
+        public decimal RVRET2 { get; set; } = 0;
+        public string RVCRE2 { get; set; } = "";
+        public string RVMRE2 { get; set; } = "";
+        public decimal RVPVTA { get; set; } = 0;
+        public string RVCPVT { get; set; } = "";
+        public string RVMPVT { get; set; } = "";
+        public int RVCONC { get; set; } = 0;
+        public string RVTREF { get; set; } = "";
+        public string RVNREF { get; set; } = "";
+        public string RVASTO { get; set; } = "";
+        public string RVGRAB { get; set; } = "N";
+        public int RVFPRO { get; set; } = 0;
+        public int RVHPRO { get; set; } = 0;
+        public int RVFEVE { get; set; } = 0;
+        public string RVNDOM { get; set; } = "";
+        public string RVCPAG { get; set; } = "";
+        public string RVRUC { get; set; } = "";
+        public string RVSITU { get; set; } = "";
+        public string RVCOST { get; set; } = "";
+        public string RVCVEN { get; set; } = "";
+        public string RVCCOB { get; set; } = "006";
+        public string RVACTI { get; set; } = "";
+        public string RVTGAS { get; set; } = "";
+        public string RVBANC { get; set; } = "";
+        public string RVNBCO { get; set; } = "";
+        public string RVUSIN { get; set; } = "";
+        public int RVFEIN { get; set; } = 0;
+        public int RVHOIN { get; set; } = 0;
+        public string RVUSMD { get; set; } = "";
+        public int RVFEMD { get; set; } = 0;
+        public int RVHOMD { get; set; } = 0;
+        public string RVREF1 { get; set; } = "";
+        public string RVREF2 { get; set; } = "";
+        public string RVREF3 { get; set; } = "";
+        public decimal RVREF4 { get; set; } = 0;
+        public decimal RVREF5 { get; set; } = 0;
+        public string RVHASH { get; set; } = "FI";
+        public string RVSUNA { get; set; } = "";
+        public string RVGLOS { get; set; } = "";
+        public List<RegistroVentasDetail>? RegistroVentasDetail { get; set; } = null;
+    }
+}
