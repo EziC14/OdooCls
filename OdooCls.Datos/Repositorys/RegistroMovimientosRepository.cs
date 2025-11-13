@@ -43,11 +43,12 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public async Task<bool> InsertTmovh(RegistroMovimiento m)
         {
+            // MHASTO removido - no se usa
             string query = $@"insert into {library}.tmovh 
-                (MHALMA, MHASTO, MHCHOF, MHCMOV, MHCOMP, MHEJER, MHFECH, MHFEIN, MHFEMD, 
+                (MHALMA, MHCHOF, MHCMOV, MHCOMP, MHEJER, MHFECH, MHFEIN, MHFEMD, 
                  MHHOIN, MHHOMD, MHHRE1, MHHRE2, MHHRE3, MHPERI, MHREF1, MHREF2, MHREF3, 
                  MHREF4, MHREF5, MHSITD, MHSITU, MHTMOV, MHUSEA, MHUSER, MHUSIN, MHUSMD, MHVEHI)
-                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             try
             {
                 using var cn = new OdbcConnection(connectionString);
@@ -55,7 +56,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 await cn.OpenAsync();
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@MHALMA", m.MHALMA);
-                cmd.Parameters.AddWithValue("@MHASTO", m.MHASTO);
+                // MHASTO - Removido
                 cmd.Parameters.AddWithValue("@MHCHOF", m.MHCHOF);
                 cmd.Parameters.AddWithValue("@MHCMOV", m.MHCMOV);
                 cmd.Parameters.AddWithValue("@MHCOMP", m.MHCOMP);
@@ -319,6 +320,125 @@ namespace OdooCls.Infrastucture.Repositorys
                 cmd.Parameters.AddWithValue("@PDVALE", d.PDVALE);
                 cmd.Parameters.AddWithValue("@PDZONA", d.PDZONA);
                 cmd.Parameters.AddWithValue("@REQNRO", d.REQNRO);
+                await cmd.ExecuteNonQueryAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // ==================== MÉTODOS PARA NOTA DE CRÉDITO ====================
+
+        public async Task<bool> InsertTncdh(RegistroNotaCredito nc)
+        {
+            string query = $@"insert into {library}.tncdh 
+                (NHALMA, NHCLIE, NHCOST, NHCPAG, NHDIRC, NHDISC, NHEDS2, NHEIGV, NHEPVT, 
+                 NHEVVA, NHEVVI, NHFABO, NHFECP, NHMONE, NHNDS2, NHNIDE, NHNIGV, NHNOMC, 
+                 NHNPVT, NHNUME, NHNVVA, NHNVVI, NHORIG, NHPVTA, NHPVTN, NHRUBR, NHRUCC, 
+                 NHSITU, NHTCAM, NHTDOC, NHTIDE, NHTVTA, NHZONA)
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                using var cmd = new OdbcCommand(query, cn);
+                await cn.OpenAsync();
+                cmd.Parameters.AddWithValue("@NHALMA", nc.NHALMA);
+                cmd.Parameters.AddWithValue("@NHCLIE", nc.NHCLIE);
+                cmd.Parameters.AddWithValue("@NHCOST", nc.NHCOST);
+                cmd.Parameters.AddWithValue("@NHCPAG", nc.NHCPAG);
+                cmd.Parameters.AddWithValue("@NHDIRC", nc.NHDIRC);
+                cmd.Parameters.AddWithValue("@NHDISC", nc.NHDISC);
+                cmd.Parameters.AddWithValue("@NHEDS2", nc.NHEDS2);
+                cmd.Parameters.AddWithValue("@NHEIGV", nc.NHEIGV);
+                cmd.Parameters.AddWithValue("@NHEPVT", nc.NHEPVT);
+                cmd.Parameters.AddWithValue("@NHEVVA", nc.NHEVVA);
+                cmd.Parameters.AddWithValue("@NHEVVI", nc.NHEVVI);
+                cmd.Parameters.AddWithValue("@NHFABO", nc.NHFABO);
+                cmd.Parameters.AddWithValue("@NHFECP", nc.NHFECP);
+                cmd.Parameters.AddWithValue("@NHMONE", nc.NHMONE);
+                cmd.Parameters.AddWithValue("@NHNDS2", nc.NHNDS2);
+                cmd.Parameters.AddWithValue("@NHNIDE", nc.NHNIDE);
+                cmd.Parameters.AddWithValue("@NHNIGV", nc.NHNIGV);
+                cmd.Parameters.AddWithValue("@NHNOMC", nc.NHNOMC);
+                cmd.Parameters.AddWithValue("@NHNPVT", nc.NHNPVT);
+                cmd.Parameters.AddWithValue("@NHNUME", nc.NHNUME);
+                cmd.Parameters.AddWithValue("@NHNVVA", nc.NHNVVA);
+                cmd.Parameters.AddWithValue("@NHNVVI", nc.NHNVVI);
+                cmd.Parameters.AddWithValue("@NHORIG", nc.NHORIG);
+                cmd.Parameters.AddWithValue("@NHPVTA", nc.NHPVTA);
+                cmd.Parameters.AddWithValue("@NHPVTN", nc.NHPVTN);
+                cmd.Parameters.AddWithValue("@NHRUBR", nc.NHRUBR);
+                cmd.Parameters.AddWithValue("@NHRUCC", nc.NHRUCC);
+                cmd.Parameters.AddWithValue("@NHSITU", nc.NHSITU);
+                cmd.Parameters.AddWithValue("@NHTCAM", nc.NHTCAM);
+                cmd.Parameters.AddWithValue("@NHTDOC", nc.NHTDOC);
+                cmd.Parameters.AddWithValue("@NHTIDE", nc.NHTIDE);
+                cmd.Parameters.AddWithValue("@NHTVTA", nc.NHTVTA);
+                cmd.Parameters.AddWithValue("@NHZONA", nc.NHZONA);
+                await cmd.ExecuteNonQueryAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> InsertTncdd(RegistroNotaCreditoDetail nc)
+        {
+            string query = $@"insert into {library}.tncdd 
+                (NCARTI, NCCANT, NCCEQU, NCCLIE, NCEDS2, NCEIGV, NCEPVT, NCEVVA, NCEVVI, 
+                 NCFECV, NCFVTA, NCITEM, NCLOTE, NCLPCO, NCMONE, NCNART, NCNCOT, NCNDS2, 
+                 NCNIGV, NCNPVT, NCNUME, NCNVVA, NCNVVI, NCPVTA, NCREF0, NCREF1, NCREF2, 
+                 NCREF5, NCSCOT, NCSECC, NCSECU, NCSERI, NCTVTA, NCUNIT, NCUNVT, NCUSAD, 
+                 NCVALE, NCZONA, REQNRO)
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                using var cmd = new OdbcCommand(query, cn);
+                await cn.OpenAsync();
+                cmd.Parameters.AddWithValue("@NCARTI", nc.NCARTI);
+                cmd.Parameters.AddWithValue("@NCCANT", nc.NCCANT);
+                cmd.Parameters.AddWithValue("@NCCEQU", nc.NCCEQU);
+                cmd.Parameters.AddWithValue("@NCCLIE", nc.NCCLIE);
+                cmd.Parameters.AddWithValue("@NCEDS2", nc.NCEDS2);
+                cmd.Parameters.AddWithValue("@NCEIGV", nc.NCEIGV);
+                cmd.Parameters.AddWithValue("@NCEPVT", nc.NCEPVT);
+                cmd.Parameters.AddWithValue("@NCEVVA", nc.NCEVVA);
+                cmd.Parameters.AddWithValue("@NCEVVI", nc.NCEVVI);
+                cmd.Parameters.AddWithValue("@NCFECV", nc.NCFECV);
+                cmd.Parameters.AddWithValue("@NCFVTA", nc.NCFVTA);
+                cmd.Parameters.AddWithValue("@NCITEM", nc.NCITEM);
+                cmd.Parameters.AddWithValue("@NCLOTE", nc.NCLOTE);
+                cmd.Parameters.AddWithValue("@NCLPCO", nc.NCLPCO);
+                cmd.Parameters.AddWithValue("@NCMONE", nc.NCMONE);
+                cmd.Parameters.AddWithValue("@NCNART", nc.NCNART);
+                cmd.Parameters.AddWithValue("@NCNCOT", nc.NCNCOT);
+                cmd.Parameters.AddWithValue("@NCNDS2", nc.NCNDS2);
+                cmd.Parameters.AddWithValue("@NCNIGV", nc.NCNIGV);
+                cmd.Parameters.AddWithValue("@NCNPVT", nc.NCNPVT);
+                cmd.Parameters.AddWithValue("@NCNUME", nc.NCNUME);
+                cmd.Parameters.AddWithValue("@NCNVVA", nc.NCNVVA);
+                cmd.Parameters.AddWithValue("@NCNVVI", nc.NCNVVI);
+                cmd.Parameters.AddWithValue("@NCPVTA", nc.NCPVTA);
+                cmd.Parameters.AddWithValue("@NCREF0", nc.NCREF0);
+                cmd.Parameters.AddWithValue("@NCREF1", nc.NCREF1);
+                cmd.Parameters.AddWithValue("@NCREF2", nc.NCREF2);
+                cmd.Parameters.AddWithValue("@NCREF5", nc.NCREF5);
+                cmd.Parameters.AddWithValue("@NCSCOT", nc.NCSCOT);
+                cmd.Parameters.AddWithValue("@NCSECC", nc.NCSECC);
+                cmd.Parameters.AddWithValue("@NCSECU", nc.NCSECU);
+                cmd.Parameters.AddWithValue("@NCSERI", nc.NCSERI);
+                cmd.Parameters.AddWithValue("@NCTVTA", nc.NCTVTA);
+                cmd.Parameters.AddWithValue("@NCUNIT", nc.NCUNIT);
+                cmd.Parameters.AddWithValue("@NCUNVT", nc.NCUNVT);
+                cmd.Parameters.AddWithValue("@NCUSAD", nc.NCUSAD);
+                cmd.Parameters.AddWithValue("@NCVALE", nc.NCVALE); // Auto-asignado = MHCOMP
+                cmd.Parameters.AddWithValue("@NCZONA", nc.NCZONA);
+                cmd.Parameters.AddWithValue("@REQNRO", nc.REQNRO);
                 await cmd.ExecuteNonQueryAsync();
                 return true;
             }

@@ -10,16 +10,16 @@ namespace OdooCls.Core.Entities
     public class RegistroMovimiento
     {
         public string MHALMA { get; set; } = string.Empty;  // CODIGO ALMACEN (CHAR 2)
-        public string MHASTO { get; set; } = string.Empty;  // ASIENTO CONTABLE (CHAR 10)
+        // MHASTO - NO SE USA - Removido para evitar confusión
         public string MHCHOF { get; set; } = string.Empty;  // CHOFER (CHAR 10)
-        public string MHCMOV { get; set; } = string.Empty;  // CLASE MOVIMI. (CHAR 1) I/S
+        public string MHCMOV { get; set; } = string.Empty;  // CLASE MOVIMI. (CHAR 1) - Solo "S" o "I"
         public int MHCOMP { get; set; } = 0;                   // NRO.VALE ALM. (NUMERIC 6)
         public int MHEJER { get; set; } = 0;                      // EJERCICIO (NUMERIC 4)
-        public int MHFECH { get; set; } = 0;                       // FECHA MOVIM. (NUMERIC 8)
-        public int MHFEIN { get; set; } = 0;                       // FECHA DE INGRESO (NUMERIC 8)
-        public int MHFEMD { get; set; } = 0;                       // FECHA DE MODIF. (NUMERIC 8)
-        public int MHHOIN { get; set; } = 0;                       // HORA DE INGRESO (NUMERIC 6)
-        public int MHHOMD { get; set; } = 0;                       // HORA DE MODIF. (NUMERIC 6)
+        public int MHFECH { get; set; } = 0;                       // FECHA MOVIM. (NUMERIC 8) - Formato: 20210218
+        public int MHFEIN { get; set; } = 0;                       // FECHA DE INGRESO (NUMERIC 8) - Formato: 20210218
+        public int MHFEMD { get; set; } = 0;                       // FECHA DE MODIF. (NUMERIC 8) - Formato: 20210218
+        public int MHHOIN { get; set; } = 0;                       // HORA DE INGRESO (NUMERIC 6) - Formato: 144426
+        public int MHHOMD { get; set; } = 0;                       // HORA DE MODIF. (NUMERIC 6) - Formato: 144426
         public string MHHRE1 { get; set; } = string.Empty;  // REF. AUXIL. 1 (CHAR 10)
         public string MHHRE2 { get; set; } = string.Empty;  // REF. AUXIL. 2 (CHAR 10)
         public string MHHRE3 { get; set; } = string.Empty;  // REF. AUXIL. 3 (CHAR 10)

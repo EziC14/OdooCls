@@ -4,14 +4,19 @@ namespace OdooCls.Core.Interfaces
 {
     public interface IRegistroMovimientosRepository
     {
+        // Métodos comunes (siempre se usan)
         Task<bool> ExisteMovimiento(int ejercicio, int periodo, string almacen, int comprobante);
         Task<bool> InsertTmovh(RegistroMovimiento movimiento);
         Task<bool> InsertTmovd(RegistroMovimientoDetail detalle);
+        
+        // Métodos para PEDIDO
         Task<bool> InsertTpedh(RegistroPedido pedido);
         Task<bool> InsertTpedd(RegistroPedidoDetail detalle);
         
-        // TODO: Agregar métodos para NotaCredito cuando se tenga la info
-        // Task<bool> InsertTnch(RegistroNotaCredito notaCredito);
-        // Task<bool> InsertTncd(RegistroNotaCreditoDetail detalle);
+        // Métodos para NOTA_CREDITO
+        Task<bool> InsertTncdh(RegistroNotaCredito notaCredito);
+        Task<bool> InsertTncdd(RegistroNotaCreditoDetail detalle);
+        
+        // Para INVENTARIO solo se usan InsertTmovh e InsertTmovd
     }
 }

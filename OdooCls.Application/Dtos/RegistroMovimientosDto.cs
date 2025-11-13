@@ -4,17 +4,23 @@ namespace OdooCls.Application.Dtos
 {
     /// <summary>
     /// Enum para los diferentes tipos de movimientos
+    /// PEDIDO: Crea factura - Inserta TMOVH + TMOVD + TPEDH + TPEDD
+    /// NOTA_CREDITO: Anula pedido - Inserta TMOVH + TMOVD + TNCDH + TNCDD
+    /// INVENTARIO: Movimientos normales - Inserta solo TMOVH + TMOVD
     /// </summary>
     public enum TipoMovimiento
     {
         PEDIDO = 1,
-        NOTA_CREDITO = 2
-        // Se pueden agregar más tipos en el futuro
+        NOTA_CREDITO = 2,
+        INVENTARIO = 3
     }
 
     /// <summary>
     /// DTO para registro de Movimientos con sus diferentes tipos
-    /// Crea 4 registros: TMOVH + TMOVD + (TPEDH + TPEDD) o (TNC + TNCD) según el tipo
+    /// - PEDIDO: TMOVH + TMOVD + TPEDH + TPEDD
+    /// - NOTA_CREDITO: TMOVH + TMOVD + TNCDH + TNCDD
+    /// - INVENTARIO: TMOVH + TMOVD (solo)
+    /// IMPORTANTE: No existe anulación de pedido, siempre se hace Nota de Crédito
     /// </summary>
     public class RegistroMovimientosDto
     {
@@ -36,13 +42,25 @@ namespace OdooCls.Application.Dtos
         // Detalles del Pedido (TPEDD) - SOLO SI Tipo = PEDIDO
         public List<PedidoDetailDto>? PedidoDetails { get; set; }
 
-        // TODO: Agregar NotaCreditoHeader y NotaCreditoDetails cuando se tenga la info
+        // Datos de Nota de Crédito (TNCDH) - SOLO SI Tipo = NOTA_CREDITO
+        public NotaCreditoHeaderDto? NotaCredito { get; set; }
+
+        // Detalles de Nota de Crédito (TNCDD) - SOLO SI Tipo = NOTA_CREDITO
+        public List<NotaCreditoDetailDto>? NotaCreditoDetails { get; set; }
+
+        // Si Tipo = INVENTARIO, solo se usan Movimiento y MovimientoDetails
     }
 
+    /// <summary>
+    /// Header del Movimiento (TMOVH) - TODOS LOS CAMPOS SON OBLIGATORIOS
+    /// MHCMOV: Solo permite "S" (Salida) o "I" (Ingreso)
+    /// Formatos: Fechas YYYYMMDD (ej: 20210218), Horas HHMMSS (ej: 144426)
+    /// </summary>
     public class MovimientoHeaderDto
     {
         [Required] [StringLength(2)] public string MHALMA { get; set; } = string.Empty;
-        [Required] [StringLength(1)] public string MHCMOV { get; set; } = string.Empty;
+        [Required] [StringLength(1)] [RegularExpression("^[SI]$", ErrorMessage = "MHCMOV solo permite 'S' (Salida) o 'I' (Ingreso)")] 
+        public string MHCMOV { get; set; } = string.Empty;
         [Required] public int MHCOMP { get; set; }
         [Required] public int MHEJER { get; set; }
         [Required] public int MHFECH { get; set; }
@@ -50,7 +68,7 @@ namespace OdooCls.Application.Dtos
         [Required] [StringLength(2)] public string MHSITU { get; set; } = string.Empty;
         [Required] [StringLength(2)] public string MHTMOV { get; set; } = string.Empty;
 
-        [Required] [StringLength(10)] public string MHASTO { get; set; } = string.Empty;
+        // MHASTO - NO SE USA - Removido para evitar confusión
         [Required] [StringLength(10)] public string MHCHOF { get; set; } = string.Empty;
         [Required] public int MHFEIN { get; set; }
         [Required] public int MHFEMD { get; set; }
@@ -72,11 +90,18 @@ namespace OdooCls.Application.Dtos
         [Required] [StringLength(10)] public string MHVEHI { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// Detalle del Movimiento (TMOVD) - TODOS LOS CAMPOS SON OBLIGATORIOS
+    /// MDCMOV: Solo permite "S" (Salida) o "I" (Ingreso)
+    /// MDCOMP: Debe coincidir con MHCOMP del header
+    /// Formatos: Fechas YYYYMMDD (ej: 20210218)
+    /// </summary>
     public class MovimientoDetailDto
     {
         [Required] [StringLength(2)] public string MDALMA { get; set; } = string.Empty;
         [Required] public decimal MDCANR { get; set; }
-        [Required] [StringLength(1)] public string MDCMOV { get; set; } = string.Empty;
+        [Required] [StringLength(1)] [RegularExpression("^[SI]$", ErrorMessage = "MDCMOV solo permite 'S' (Salida) o 'I' (Ingreso)")] 
+        public string MDCMOV { get; set; } = string.Empty;
         [Required] [StringLength(20)] public string MDCOAR { get; set; } = string.Empty;
         [Required] public int MDCOMP { get; set; }
         [Required] public int MDCORR { get; set; }
@@ -246,6 +271,93 @@ namespace OdooCls.Application.Dtos
         [Required] [StringLength(10)] public string PDUSAG { get; set; } = string.Empty;
         [Required] [StringLength(10)] public string PDUSXF { get; set; } = string.Empty;
         [Required] [StringLength(3)] public string PDZONA { get; set; } = string.Empty;
+        [Required] public int REQNRO { get; set; }
+    }
+
+    /// <summary>
+    /// Header de Nota de Crédito (TNCDH) - SOLO para Tipo = NOTA_CREDITO - TODOS LOS CAMPOS SON OBLIGATORIOS
+    /// Nota: No existe anulación de pedido, siempre se hace NC
+    /// </summary>
+    public class NotaCreditoHeaderDto
+    {
+        [Required] [StringLength(2)] public string NHALMA { get; set; } = string.Empty;
+        [Required] [StringLength(10)] public string NHCLIE { get; set; } = string.Empty;
+        [Required] [StringLength(15)] public string NHCOST { get; set; } = string.Empty;
+        [Required] [StringLength(3)] public string NHCPAG { get; set; } = string.Empty;
+        [Required] [StringLength(40)] public string NHDIRC { get; set; } = string.Empty;
+        [Required] [StringLength(30)] public string NHDISC { get; set; } = string.Empty;
+        [Required] public decimal NHEDS2 { get; set; }
+        [Required] public decimal NHEIGV { get; set; }
+        [Required] public decimal NHEPVT { get; set; }
+        [Required] public decimal NHEVVA { get; set; }
+        [Required] public decimal NHEVVI { get; set; }
+        [Required] public int NHFABO { get; set; }
+        [Required] public int NHFECP { get; set; }  // Formato: 20210218
+        [Required] public int NHMONE { get; set; }
+        [Required] public decimal NHNDS2 { get; set; }
+        [Required] [StringLength(15)] public string NHNIDE { get; set; } = string.Empty;
+        [Required] public decimal NHNIGV { get; set; }
+        [Required] [StringLength(40)] public string NHNOMC { get; set; } = string.Empty;
+        [Required] public decimal NHNPVT { get; set; }
+        [Required] public int NHNUME { get; set; }
+        [Required] public decimal NHNVVA { get; set; }
+        [Required] public decimal NHNVVI { get; set; }
+        [Required] [StringLength(1)] public string NHORIG { get; set; } = string.Empty;
+        [Required] public int NHPVTA { get; set; }
+        [Required] public int NHPVTN { get; set; }
+        [Required] [StringLength(1)] public string NHRUBR { get; set; } = string.Empty;
+        [Required] [StringLength(15)] public string NHRUCC { get; set; } = string.Empty;
+        [Required] [StringLength(2)] public string NHSITU { get; set; } = string.Empty;
+        [Required] public decimal NHTCAM { get; set; }
+        [Required] [StringLength(2)] public string NHTDOC { get; set; } = string.Empty;
+        [Required] [StringLength(2)] public string NHTIDE { get; set; } = string.Empty;
+        [Required] [StringLength(2)] public string NHTVTA { get; set; } = string.Empty;
+        [Required] [StringLength(3)] public string NHZONA { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Detalle de Nota de Crédito (TNCDD) - SOLO para Tipo = NOTA_CREDITO - TODOS LOS CAMPOS SON OBLIGATORIOS
+    /// </summary>
+    public class NotaCreditoDetailDto
+    {
+        [Required] [StringLength(20)] public string NCARTI { get; set; } = string.Empty;
+        [Required] public decimal NCCANT { get; set; }
+        [Required] [StringLength(25)] public string NCCEQU { get; set; } = string.Empty;
+        [Required] [StringLength(10)] public string NCCLIE { get; set; } = string.Empty;
+        [Required] public decimal NCEDS2 { get; set; }
+        [Required] public decimal NCEIGV { get; set; }
+        [Required] public decimal NCEPVT { get; set; }
+        [Required] public decimal NCEVVA { get; set; }
+        [Required] public decimal NCEVVI { get; set; }
+        [Required] public int NCFECV { get; set; }  // Formato: 20210218
+        [Required] public int NCFVTA { get; set; }
+        [Required] public int NCITEM { get; set; }
+        [Required] [StringLength(10)] public string NCLOTE { get; set; } = string.Empty;
+        [Required] public int NCLPCO { get; set; }
+        [Required] public int NCMONE { get; set; }
+        [Required] [StringLength(15)] public string NCNART { get; set; } = string.Empty;
+        [Required] public int NCNCOT { get; set; }
+        [Required] public decimal NCNDS2 { get; set; }
+        [Required] public decimal NCNIGV { get; set; }
+        [Required] public decimal NCNPVT { get; set; }
+        [Required] public int NCNUME { get; set; }
+        [Required] public decimal NCNVVA { get; set; }
+        [Required] public decimal NCNVVI { get; set; }
+        [Required] public int NCPVTA { get; set; }
+        [Required] [StringLength(15)] public string NCREF0 { get; set; } = string.Empty;
+        [Required] [StringLength(10)] public string NCREF1 { get; set; } = string.Empty;
+        [Required] [StringLength(10)] public string NCREF2 { get; set; } = string.Empty;
+        [Required] [StringLength(15)] public string NCREF5 { get; set; } = string.Empty;
+        [Required] public int NCSCOT { get; set; }
+        [Required] public int NCSECC { get; set; }
+        [Required] public int NCSECU { get; set; }
+        [Required] [StringLength(25)] public string NCSERI { get; set; } = string.Empty;
+        [Required] [StringLength(2)] public string NCTVTA { get; set; } = string.Empty;
+        [Required] public decimal NCUNIT { get; set; }
+        [Required] [StringLength(3)] public string NCUNVT { get; set; } = string.Empty;
+        [Required] [StringLength(10)] public string NCUSAD { get; set; } = string.Empty;
+        // NCVALE se asigna automáticamente = MHCOMP
+        [Required] [StringLength(3)] public string NCZONA { get; set; } = string.Empty;
         [Required] public int REQNRO { get; set; }
     }
 }

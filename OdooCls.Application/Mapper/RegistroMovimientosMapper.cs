@@ -10,7 +10,7 @@ namespace OdooCls.Application.Mapper
             return new RegistroMovimiento
             {
                 MHALMA = dto.MHALMA,
-                MHASTO = dto.MHASTO,
+                // MHASTO - NO SE USA - Removido
                 MHCHOF = dto.MHCHOF,
                 MHCMOV = dto.MHCMOV,
                 MHCOMP = dto.MHCOMP,
@@ -223,6 +223,92 @@ namespace OdooCls.Application.Mapper
             };
         }
 
-        // TODO: Agregar métodos para NotaCredito cuando se tenga la info
+        // ==================== MAPPERS PARA NOTA DE CRÉDITO ====================
+
+        public static RegistroNotaCredito NotaCreditoHeaderToEntity(NotaCreditoHeaderDto dto)
+        {
+            return new RegistroNotaCredito
+            {
+                NHALMA = dto.NHALMA,
+                NHCLIE = dto.NHCLIE,
+                NHCOST = dto.NHCOST,
+                NHCPAG = dto.NHCPAG,
+                NHDIRC = dto.NHDIRC,
+                NHDISC = dto.NHDISC,
+                NHEDS2 = dto.NHEDS2,
+                NHEIGV = dto.NHEIGV,
+                NHEPVT = dto.NHEPVT,
+                NHEVVA = dto.NHEVVA,
+                NHEVVI = dto.NHEVVI,
+                NHFABO = dto.NHFABO,
+                NHFECP = dto.NHFECP,
+                NHMONE = dto.NHMONE,
+                NHNDS2 = dto.NHNDS2,
+                NHNIDE = dto.NHNIDE,
+                NHNIGV = dto.NHNIGV,
+                NHNOMC = dto.NHNOMC,
+                NHNPVT = dto.NHNPVT,
+                NHNUME = dto.NHNUME,
+                NHNVVA = dto.NHNVVA,
+                NHNVVI = dto.NHNVVI,
+                NHORIG = dto.NHORIG,
+                NHPVTA = dto.NHPVTA,
+                NHPVTN = dto.NHPVTN,
+                NHRUBR = dto.NHRUBR,
+                NHRUCC = dto.NHRUCC,
+                NHSITU = dto.NHSITU,
+                NHTCAM = dto.NHTCAM,
+                NHTDOC = dto.NHTDOC,
+                NHTIDE = dto.NHTIDE,
+                NHTVTA = dto.NHTVTA,
+                NHZONA = dto.NHZONA
+            };
+        }
+
+        public static RegistroNotaCreditoDetail NotaCreditoDetailToEntity(NotaCreditoDetailDto dto, int ncvale)
+        {
+            return new RegistroNotaCreditoDetail
+            {
+                NCARTI = dto.NCARTI,
+                NCCANT = dto.NCCANT,
+                NCCEQU = dto.NCCEQU,
+                NCCLIE = dto.NCCLIE,
+                NCEDS2 = dto.NCEDS2,
+                NCEIGV = dto.NCEIGV,
+                NCEPVT = dto.NCEPVT,
+                NCEVVA = dto.NCEVVA,
+                NCEVVI = dto.NCEVVI,
+                NCFECV = dto.NCFECV,
+                NCFVTA = dto.NCFVTA,
+                NCITEM = dto.NCITEM,
+                NCLOTE = dto.NCLOTE,
+                NCLPCO = dto.NCLPCO,
+                NCMONE = dto.NCMONE,
+                NCNART = dto.NCNART,
+                NCNCOT = dto.NCNCOT,
+                NCNDS2 = dto.NCNDS2,
+                NCNIGV = dto.NCNIGV,
+                NCNPVT = dto.NCNPVT,
+                NCNUME = dto.NCNUME,
+                NCNVVA = dto.NCNVVA,
+                NCNVVI = dto.NCNVVI,
+                NCPVTA = dto.NCPVTA,
+                NCREF0 = dto.NCREF0,
+                NCREF1 = dto.NCREF1,
+                NCREF2 = dto.NCREF2,
+                NCREF5 = dto.NCREF5,
+                NCSCOT = dto.NCSCOT,
+                NCSECC = dto.NCSECC,
+                NCSECU = dto.NCSECU,
+                NCSERI = dto.NCSERI,
+                NCTVTA = dto.NCTVTA,
+                NCUNIT = dto.NCUNIT,
+                NCUNVT = dto.NCUNVT,
+                NCUSAD = dto.NCUSAD,
+                NCVALE = ncvale, // SE ASIGNA AUTOMÁTICAMENTE = MHCOMP
+                NCZONA = dto.NCZONA,
+                REQNRO = dto.REQNRO
+            };
+        }
     }
 }

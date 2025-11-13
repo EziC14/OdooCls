@@ -27,8 +27,9 @@ namespace OdooCls.API.Controllers
         /// <summary>
         /// Crea un nuevo movimiento de inventario con diferentes tipos
         /// Tipos soportados:
-        /// - PEDIDO: Inserta en TMOVH + TMOVD + TPEDH + TPEDD
-        /// - NOTA_CREDITO: Pendiente de implementar
+        /// - PEDIDO (1): Inserta en TMOVH + TMOVD + TPEDH + TPEDD (para facturas)
+        /// - NOTA_CREDITO (2): Inserta en TMOVH + TMOVD + TNCDH + TNCDD (para anular pedidos)
+        /// - INVENTARIO (3): Inserta solo en TMOVH + TMOVD (movimientos normales de almacén)
         /// </summary>
         [HttpPost]
         [Route("create")]
@@ -64,8 +65,14 @@ namespace OdooCls.API.Controllers
                 Success = true,
                 Message = "API de Movimientos funcionando correctamente",
                 Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                Version = "1.0.0",
-                TiposSoportados = new[] { "PEDIDO", "NOTA_CREDITO (pendiente)" }
+                Version = "2.0.0",
+                TiposSoportados = new[]
+                {
+                    new { Tipo = 1, Nombre = "PEDIDO", Descripcion = "TMOVH + TMOVD + TPEDH + TPEDD (Facturas)", Estado = "Implementado" },
+                    new { Tipo = 2, Nombre = "NOTA_CREDITO", Descripcion = "TMOVH + TMOVD + TNCDH + TNCDD (Anular pedidos)", Estado = "Implementado" },
+                    new { Tipo = 3, Nombre = "INVENTARIO", Descripcion = "TMOVH + TMOVD (Movimientos normales)", Estado = "Implementado" }
+                },
+                Nota = "No existe anulación de pedido. Para anular siempre se usa NOTA_CREDITO"
             });
         }
     }
