@@ -7,5 +7,6 @@ namespace OdooCls.Core.Interfaces
         Task<bool> InsertTclie(RegistroCliente cliente);
         Task<bool> UpdateNombreYSituacion(string clicve, string nombre, string situacion);
         Task<bool> ExisteCliente(string clicve);
+        Task<bool> ExisteRuc(string ruc);
     }
 }

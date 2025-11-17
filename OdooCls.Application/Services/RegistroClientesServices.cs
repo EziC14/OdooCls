@@ -27,6 +27,10 @@ namespace OdooCls.Application.Services
                 if (await repo.ExisteCliente(dto.CLICVE))
                     return new ApiResponse<RegistroClientesDto>(400, 3001, $"Cliente {dto.CLICVE} ya existe");
 
+                // Validar RUC único
+                if (!string.IsNullOrWhiteSpace(dto.CLIRUC) && await repo.ExisteRuc(dto.CLIRUC))
+                    return new ApiResponse<RegistroClientesDto>(400, 3003, $"El RUC {dto.CLIRUC} ya está registrado");
+
                 var sit = (dto.CLISIT ?? string.Empty).Trim();
                 var allowedSit = new HashSet<string>(new[] { "01", "02", "99" });
                 if (!allowedSit.Contains(sit))

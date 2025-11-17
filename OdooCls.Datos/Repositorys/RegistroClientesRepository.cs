@@ -89,5 +89,25 @@ namespace OdooCls.Infrastucture.Repositorys
                 return false;
             }
         }
+
+        public async Task<bool> ExisteRuc(string ruc)
+        {
+            string q = $@"select count(1) from {library}.tclie where CLIRUC=?";
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                using var cmd = new OdbcCommand(q, cn);
+                cmd.CommandTimeout = 5;
+                await cn.OpenAsync();
+                cmd.Parameters.AddWithValue("@CLIRUC", ruc);
+                var result = await cmd.ExecuteScalarAsync();
+                return Convert.ToInt32(result) > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Repository.ExisteRuc] ERROR: {ex.Message}");
+                throw;
+            }
+        }
     }
 }
