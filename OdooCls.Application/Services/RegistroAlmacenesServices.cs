@@ -32,6 +32,14 @@ namespace OdooCls.Application.Services
                 var sit = (dto.ALSITU ?? string.Empty).Trim();
                 if (string.IsNullOrEmpty(sit))
                     return new ApiResponse<RegistroAlmacenesDto>(400, 5002, "ALSITU (Situación) es obligatorio");
+                
+                if (!sit.Equals("01") && !sit.Equals("02") && !sit.Equals("99"))
+                    return new ApiResponse<RegistroAlmacenesDto>(400, 5002, "ALSITU debe ser uno de: 01 (Activo), 02 (Bloqueado), 99 (Anulado)");
+
+                var alcant = dto.ALCANT.ToString().Trim();
+
+                if (int.TryParse(alcant, out _) && int.Parse(alcant) > 1)
+                    return new ApiResponse<RegistroAlmacenesDto>(400, 5008, "ALCANT (Cantidad) no puede tener más de 1 caracteres");
 
                 var entity = RegistroAlmacenesMapper.DtoToEntity(dto);
                 var ok = await repo.InsertTalma(entity);
