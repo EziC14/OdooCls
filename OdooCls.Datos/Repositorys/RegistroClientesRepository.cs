@@ -45,9 +45,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 await cmd.ExecuteNonQueryAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                Console.WriteLine($"[Repository.InsertTclie] ERROR: {ex.Message}");
+                throw;
             }
         }
 

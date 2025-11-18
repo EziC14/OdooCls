@@ -19,6 +19,8 @@ namespace OdooCls.Application.Mapper
                 PROPAI = dto.PROPAI,
                 PRORUC = dto.PRORUC,
                 PROSIT = dto.PROSIT,
+                PRORF1 = dto.PRORF1,
+                PROARE = dto.PROARE,
                 CPACVE = dto.CPACVE
             };
         }

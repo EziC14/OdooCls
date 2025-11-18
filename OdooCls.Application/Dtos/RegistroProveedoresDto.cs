@@ -38,6 +38,16 @@ namespace OdooCls.Application.Dtos
         [StringLength(2)]
         public string PROSIT { get; set; } = string.Empty; // Situación Proveedor (01/02/99)
 
+        [Required]
+        [RegularExpression("^[SN]$", ErrorMessage = "PRORF1 debe ser 'S' o 'N'")]
+        [StringLength(1)]
+        public string PRORF1 { get; set; } = string.Empty; // Aplica Retención (S/N)
+
+        [Required]
+        [RegularExpression("^[SN]$", ErrorMessage = "PROARE debe ser 'S' o 'N'")]
+        [StringLength(1)]
+        public string PROARE { get; set; } = string.Empty; // Acepta Recojos (S/N)
+
         [StringLength(3)]
         public string CPACVE { get; set; } = string.Empty; // Clave Condición Pago
     }

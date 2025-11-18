@@ -28,11 +28,25 @@ namespace OdooCls.Application.Services
                 if (await repo.ExisteProveedor(dto.PROCVE))
                     return new ApiResponse<RegistroProveedoresDto>(400, 4001, $"Proveedor {dto.PROCVE} ya existe");
 
+                // Validar RUC único
+                if (!string.IsNullOrWhiteSpace(dto.PRORUC) && await repo.ExisteRuc(dto.PRORUC))
+                    return new ApiResponse<RegistroProveedoresDto>(400, 4003, $"El RUC {dto.PRORUC} ya está registrado");
+
                 // Validar situación 01/02/99
                 var sit = (dto.PROSIT ?? string.Empty).Trim();
                 var allowedSit = new HashSet<string>(new[] { "01", "02", "99" });
                 if (!allowedSit.Contains(sit))
                     return new ApiResponse<RegistroProveedoresDto>(400, 4002, "PROSIT debe ser uno de: 01 (Activo), 02 (Bloqueado), 99 (Anulado)");
+
+                // Validar PRORF1 (S/N)
+                var rf1 = (dto.PRORF1 ?? string.Empty).Trim().ToUpper();
+                if (rf1 != "S" && rf1 != "N")
+                    return new ApiResponse<RegistroProveedoresDto>(400, 4004, "PRORF1 (Aplica Retención) debe ser 'S' o 'N'");
+
+                // Validar PROARE (S/N)
+                var are = (dto.PROARE ?? string.Empty).Trim().ToUpper();
+                if (are != "S" && are != "N")
+                    return new ApiResponse<RegistroProveedoresDto>(400, 4005, "PROARE (Acepta Recojos) debe ser 'S' o 'N'");
 
                 var entity = RegistroProveedoresMapper.DtoToEntity(dto);
                 var ok = await repo.InsertTprov(entity);

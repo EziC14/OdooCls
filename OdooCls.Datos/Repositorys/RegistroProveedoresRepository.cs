@@ -22,8 +22,8 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> InsertTprov(RegistroProveedor p)
         {
             string query = $@"insert into {library}.tprov 
-                (PROCVE, PRONOM, PRODIR, PROCPO, PRODIS, PROPRO, PRODPT, PROPAI, PRORUC, PROSIT, CPACVE)
-                values (?,?,?,?,?,?,?,?,?,?,?)";
+                (PROCVE, PRONOM, PRODIR, PROCPO, PRODIS, PROPRO, PRODPT, PROPAI, PRORUC, PROSIT, PRORF1, PROARE, CPACVE)
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
             try
             {
                 using var cn = new OdbcConnection(connectionString);
@@ -40,13 +40,16 @@ namespace OdooCls.Infrastucture.Repositorys
                 cmd.Parameters.AddWithValue("@PROPAI", p.PROPAI);
                 cmd.Parameters.AddWithValue("@PRORUC", p.PRORUC);
                 cmd.Parameters.AddWithValue("@PROSIT", p.PROSIT);
+                cmd.Parameters.AddWithValue("@PRORF1", p.PRORF1);
+                cmd.Parameters.AddWithValue("@PROARE", p.PROARE);
                 cmd.Parameters.AddWithValue("@CPACVE", p.CPACVE);
                 await cmd.ExecuteNonQueryAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                Console.WriteLine($"[Repository.InsertTprov] ERROR: {ex.Message}");
+                throw;
             }
         }
 
@@ -86,6 +89,26 @@ namespace OdooCls.Infrastucture.Repositorys
             catch
             {
                 return false;
+            }
+        }
+
+        public async Task<bool> ExisteRuc(string ruc)
+        {
+            string q = $@"select count(1) from {library}.tprov where PRORUC=?";
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                using var cmd = new OdbcCommand(q, cn);
+                cmd.CommandTimeout = 5;
+                await cn.OpenAsync();
+                cmd.Parameters.AddWithValue("@PRORUC", ruc);
+                var result = await cmd.ExecuteScalarAsync();
+                return Convert.ToInt32(result) > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Repository.ExisteRuc] ERROR: {ex.Message}");
+                throw;
             }
         }
     }

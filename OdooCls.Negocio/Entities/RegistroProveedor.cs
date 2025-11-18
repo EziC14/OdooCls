@@ -12,6 +12,8 @@ namespace OdooCls.Core.Entities
         public string PROPAI { get; set; } = string.Empty;
         public string PRORUC { get; set; } = string.Empty;
         public string PROSIT { get; set; } = string.Empty;
-        public string CPACVE { get; set; } = string.Empty;
+        public string PRORF1 { get; set; } = string.Empty; // Aplica Retención (S/N)
+        public string PROARE { get; set; } = string.Empty; // Acepta Recojos (S/N)
+        public string CPACVE { get; set; } = string.Empty; // Clave Condición Pago
     }
 }
