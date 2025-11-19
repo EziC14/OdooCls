@@ -64,7 +64,8 @@ namespace OdooCls.Core.Entities
         public string PHRUBR { get; set; } = string.Empty;  // Rubro de Venta (CHARACTER 1)
         public string PHRUCC { get; set; } = string.Empty;  // R.U.C. cliente (CHARACTER 15)
         public string PHSITD { get; set; } = string.Empty;  // SITUACION DESPACHO (CHARACTER 10)
-        public string PHSITU { get; set; } = string.Empty;  // Situación Pedido (CHARACTER 2)
+    [System.ComponentModel.DataAnnotations.RegularExpression("^(01|02|99)$", ErrorMessage = "PHSITU solo permite 01, 02 o 99")]
+    public string PHSITU { get; set; } = string.Empty;  // Situación Pedido (CHARACTER 2)
         public decimal PHTCAM { get; set; } = 0;                   // Tipo de Cambio (NUMERIC 15,6)
         public string PHTDOC { get; set; } = string.Empty;  // Fact./Boleta (CHARACTER 2)
         public string PHTIDE { get; set; } = string.Empty;  // Tipo Doc.Ident. (CHARACTER 2)

@@ -65,7 +65,9 @@ namespace OdooCls.Application.Dtos
         public int MHEJER { get; set; }
         public int MHFECH { get; set; }
         public int MHPERI { get; set; }
-        [StringLength(2)] public string MHSITU { get; set; } = string.Empty;
+    [StringLength(2)]
+    [RegularExpression("^(01|02|99)$", ErrorMessage = "MHSITU solo permite 01, 02 o 99")]
+    public string MHSITU { get; set; } = string.Empty;
         [StringLength(2)] public string MHTMOV { get; set; } = string.Empty;
 
         // MHASTO - NO SE USA - Removido para evitar confusión
@@ -108,7 +110,9 @@ namespace OdooCls.Application.Dtos
         public int MDEJER { get; set; }
         public int MDFECH { get; set; }
         public int MDPERI { get; set; }
-        [StringLength(2)] public string MDSITU { get; set; } = string.Empty;
+    [StringLength(2)]
+    [RegularExpression("^(01|02|99)$", ErrorMessage = "MDSITU solo permite 01, 02 o 99")]
+    public string MDSITU { get; set; } = string.Empty;
         [StringLength(2)] public string MDTMOV { get; set; } = string.Empty;
 
         [StringLength(10)] public string MDACTI { get; set; } = string.Empty;
@@ -146,7 +150,9 @@ namespace OdooCls.Application.Dtos
         public int PHMONE { get; set; }
         public int PHNUME { get; set; }
         public int PHPVTA { get; set; }
-        [StringLength(2)] public string PHSITU { get; set; } = string.Empty;
+    [StringLength(2)]
+    [RegularExpression("^(01|02|99)$", ErrorMessage = "PHSITU solo permite 01, 02 o 99")]
+    public string PHSITU { get; set; } = string.Empty;
         [StringLength(10)] public string PHUSIN { get; set; } = string.Empty;
 
         [StringLength(2)] public string PHALMA { get; set; } = string.Empty;
@@ -307,7 +313,9 @@ namespace OdooCls.Application.Dtos
         public int NHPVTN { get; set; }
         [StringLength(1)] public string NHRUBR { get; set; } = string.Empty;
         [StringLength(15)] public string NHRUCC { get; set; } = string.Empty;
-        [StringLength(2)] public string NHSITU { get; set; } = string.Empty;
+    [StringLength(2)]
+    [RegularExpression("^(01|02|99)$", ErrorMessage = "NHSITU solo permite 01, 02 o 99")]
+    public string NHSITU { get; set; } = string.Empty;
         public decimal NHTCAM { get; set; }
         [StringLength(2)] public string NHTDOC { get; set; } = string.Empty;
         [StringLength(2)] public string NHTIDE { get; set; } = string.Empty;

@@ -36,7 +36,8 @@ namespace OdooCls.Core.Entities
         public int MDMONO { get; set; } = 0;                       // Moneda de Origen (NUMERIC 2)
         public int MDPERI { get; set; } = 0;                       // Periodo (NUMERIC 2)
         public string MDSITD { get; set; } = string.Empty;  // SITUACION DESPACHO (CHAR 10)
-        public string MDSITU { get; set; } = string.Empty;  // Situacion (CHAR 2)
+    [System.ComponentModel.DataAnnotations.RegularExpression("^(01|02|99)$", ErrorMessage = "MDSITU solo permite 01, 02 o 99")]
+    public string MDSITU { get; set; } = string.Empty;  // Situacion (CHAR 2)
         public decimal MDTCAM { get; set; } = 0;                    // Tipo de Cambio (NUMERIC 15,6)
         public decimal MDTCMO { get; set; } = 0;                    // Tipo Cambio M.Orig. (NUMERIC 15,6)
         public string MDTMOV { get; set; } = string.Empty;  // Tipo Movimiento (CHAR 2)

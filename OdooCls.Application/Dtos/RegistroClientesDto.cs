@@ -34,9 +34,10 @@ namespace OdooCls.Application.Dtos
         [StringLength(15)]
         public string CLIRUC { get; set; } = string.Empty; // R.U.C. cliente
 
-        [Required]
-        [StringLength(2)]
-        public string CLISIT { get; set; } = string.Empty; // Situación Cliente (01/02/99)
+    [Required]
+    [StringLength(2)]
+    [RegularExpression("^(01|02|99)$", ErrorMessage = "CLISIT solo permite 01, 02 o 99")]
+    public string CLISIT { get; set; } = string.Empty; // Situación Cliente (01/02/99)
 
         public decimal CLILCR { get; set; } = 0; // Límite de crédito
 

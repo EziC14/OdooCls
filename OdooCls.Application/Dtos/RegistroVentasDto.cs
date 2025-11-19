@@ -52,8 +52,9 @@ namespace OdooCls.Application.Dtos
         public string RVNDOM { get; set; } = "";
         public string RVCPAG { get; set; } = "";
         public string RVRUC { get; set; } = "";
-        [StringLength(2)]
-        public string RVSITU { get; set; } = "";
+    [StringLength(2)]
+    [RegularExpression("^(01|02|99)$", ErrorMessage = "RVSITU solo permite 01, 02 o 99")]
+    public string RVSITU { get; set; } = "";
         [StringLength(15)]
         public string RVCOST { get; set; } = "";
         [StringLength(3)]

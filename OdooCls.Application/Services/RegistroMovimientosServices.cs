@@ -147,6 +147,14 @@ namespace OdooCls.Application.Services
                 return new ApiResponse<RegistroMovimientosDto>(400, 6021, 
                     $"MHCMOV solo permite 'S' (Salida) o 'I' (Ingreso). Valor recibido: '{dto.Movimiento.MHCMOV}'");
 
+            // 1.2 Validar tipo de movimiento según negocio
+            if (dto.Tipo == TipoMovimiento.PEDIDO && dto.Movimiento.MHCMOV != "S")
+                return new ApiResponse<RegistroMovimientosDto>(400, 6021, 
+                    "Para PEDIDO, MHCMOV debe ser 'S' (Salida)");
+            if (dto.Tipo == TipoMovimiento.NOTA_CREDITO && dto.Movimiento.MHCMOV != "I")
+                return new ApiResponse<RegistroMovimientosDto>(400, 6021, 
+                    "Para NOTA_CREDITO, MHCMOV debe ser 'I' (Ingreso)");
+
             // 2. Validar consistencia entre TMOVH y TMOVD
             foreach (var detalle in dto.MovimientoDetails)
             {
@@ -154,6 +162,14 @@ namespace OdooCls.Application.Services
                 if (detalle.MDCMOV != "S" && detalle.MDCMOV != "I")
                     return new ApiResponse<RegistroMovimientosDto>(400, 6022, 
                         $"MDCMOV solo permite 'S' (Salida) o 'I' (Ingreso). Valor recibido: '{detalle.MDCMOV}'");
+
+                // 2.1.1 Validar tipo de movimiento en detalles
+                if (dto.Tipo == TipoMovimiento.PEDIDO && detalle.MDCMOV != "S")
+                    return new ApiResponse<RegistroMovimientosDto>(400, 6022, 
+                        "Para PEDIDO, MDCMOV debe ser 'S' (Salida) en todos los detalles");
+                if (dto.Tipo == TipoMovimiento.NOTA_CREDITO && detalle.MDCMOV != "I")
+                    return new ApiResponse<RegistroMovimientosDto>(400, 6022, 
+                        "Para NOTA_CREDITO, MDCMOV debe ser 'I' (Ingreso) en todos los detalles");
 
                 if (detalle.MDALMA != dto.Movimiento.MHALMA)
                     return new ApiResponse<RegistroMovimientosDto>(400, 6023, 

@@ -39,7 +39,8 @@ namespace OdooCls.Core.Entities
         public int NHPVTN { get; set; } = 0;                // Punto de Venta (NUMERIC 3,0)
         public string NHRUBR { get; set; } = string.Empty;  // Rubro de Venta (CHAR 1)
         public string NHRUCC { get; set; } = string.Empty;  // R.U.C. cliente (CHAR 15)
-        public string NHSITU { get; set; } = string.Empty;  // Situación Pedido (CHAR 2)
+    [System.ComponentModel.DataAnnotations.RegularExpression("^(01|02|99)$", ErrorMessage = "NHSITU solo permite 01, 02 o 99")]
+    public string NHSITU { get; set; } = string.Empty;  // Situación Pedido (CHAR 2)
         public decimal NHTCAM { get; set; } = 0;            // Tipo de Cambio (NUMERIC 15,6)
         public string NHTDOC { get; set; } = string.Empty;  // Fact./Boleta (CHAR 2)
         public string NHTIDE { get; set; } = string.Empty;  // Tipo Doc.Ident. (CHAR 2)

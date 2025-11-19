@@ -19,9 +19,10 @@ namespace OdooCls.Application.Dtos
         [StringLength(1)]
         public string ALVALO { get; set; } = string.Empty; // Interv. Valorizac.
 
-        [Required]
-        [StringLength(2)]
-        public string ALSITU { get; set; } = string.Empty; // Situación
+    [Required]
+    [StringLength(2)]
+    [RegularExpression("^(01|02|99)$", ErrorMessage = "ALSITU solo permite 01, 02 o 99")]
+    public string ALSITU { get; set; } = string.Empty; // Situación
 
         public int ALINGR { get; set; } = 0; // Corr. Ingresos
 

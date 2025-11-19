@@ -30,7 +30,8 @@ namespace OdooCls.Core.Entities
         public string MHREF4 { get; set; } = string.Empty;  // Referencia 4 (CHAR 12)
         public string MHREF5 { get; set; } = string.Empty;  // Referencia 5 (CHAR 12)
         public string MHSITD { get; set; } = string.Empty;  // SITUACION DESPACHO (CHAR 10)
-        public string MHSITU { get; set; } = string.Empty;  // SITUACION (CHAR 2)
+    [System.ComponentModel.DataAnnotations.RegularExpression("^(01|02|99)$", ErrorMessage = "MHSITU solo permite 01, 02 o 99")]
+    public string MHSITU { get; set; } = string.Empty;  // SITUACION (CHAR 2)
         public string MHTMOV { get; set; } = string.Empty;  // Tipo Movimiento (CHAR 2)
         public string MHUSEA { get; set; } = string.Empty;  // USUAR.-ANULO (CHAR 10)
         public string MHUSER { get; set; } = string.Empty;  // USUAR.-REGISTRO (CHAR 10)

@@ -33,9 +33,10 @@ namespace OdooCls.Application.Dtos
         [StringLength(15)]
         public string ARCTAC { get; set; } = string.Empty; // Cuenta Contable (TCATC)
 
-        [Required]
-        [StringLength(2)]
-        public string ARSITU { get; set; } = string.Empty; // Situación Artículo
+    [Required]
+    [StringLength(2)]
+    [RegularExpression("^(01|02|99)$", ErrorMessage = "ARSITU solo permite 01, 02 o 99")]
+    public string ARSITU { get; set; } = string.Empty; // Situación Artículo
 
         [StringLength(2)]
         public string ARCVTA { get; set; } = string.Empty; // Condición Venta (TTABD/INCVT)
