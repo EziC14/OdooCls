@@ -41,6 +41,48 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
+        /// <summary>
+        /// Obtiene y actualiza el correlativo de vale desde TALMA
+        /// Si tipoMovimiento = "I" usa ALINGR (Ingresos)
+        /// Si tipoMovimiento = "S" usa ALSALI (Salidas)
+        /// Devuelve el número de vale generado, o 0 si hay error
+        /// </summary>
+        public async Task<int> ObtenerYActualizarCorrelativo(string almacen, string tipoMovimiento)
+        {
+            string campoCorrelativo = tipoMovimiento == "I" ? "ALINGR" : "ALSALI";
+            string querySelect = $@"select {campoCorrelativo} from {library}.talma where ALCODI=?";
+            string queryUpdate = $@"update {library}.talma set {campoCorrelativo}={campoCorrelativo}+1 where ALCODI=?";
+            
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                await cn.OpenAsync();
+                
+                // 1. Obtener el correlativo actual
+                using var cmdSelect = new OdbcCommand(querySelect, cn);
+                cmdSelect.Parameters.AddWithValue("@ALCODI", almacen);
+                var result = await cmdSelect.ExecuteScalarAsync();
+                
+                if (result == null || result == DBNull.Value)
+                    return 0;
+                
+                int correlativo = Convert.ToInt32(result);
+                int nuevoVale = correlativo + 1;
+                
+                // 2. Actualizar el correlativo en TALMA (incrementar en 1)
+                using var cmdUpdate = new OdbcCommand(queryUpdate, cn);
+                cmdUpdate.Parameters.AddWithValue("@ALCODI", almacen);
+                await cmdUpdate.ExecuteNonQueryAsync();
+                
+                return nuevoVale;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener correlativo de TALMA: {ex.Message}");
+                return 0;
+            }
+        }
+
         public async Task<bool> InsertTmovh(RegistroMovimiento m)
         {
             // MHASTO removido - no se usa

@@ -54,6 +54,7 @@ namespace OdooCls.Application.Dtos
     /// <summary>
     /// Header del Movimiento (TMOVH) - TODOS LOS CAMPOS SON OBLIGATORIOS
     /// MHCMOV: Solo permite "S" (Salida) o "I" (Ingreso)
+    /// MHCOMP: AUTO-GENERADO desde TALMA (ALINGR o ALSALI según tipo). NO enviar en el POST.
     /// Formatos: Fechas YYYYMMDD (ej: 20210218), Horas HHMMSS (ej: 144426)
     /// </summary>
     public class MovimientoHeaderDto
@@ -61,6 +62,12 @@ namespace OdooCls.Application.Dtos
         [StringLength(2)] public string MHALMA { get; set; } = string.Empty;
         [StringLength(1)] [RegularExpression("^[SI]$", ErrorMessage = "MHCMOV solo permite 'S' (Salida) o 'I' (Ingreso)")] 
         public string MHCMOV { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Número de vale - AUTO-GENERADO desde tabla TALMA.
+        /// Si MHCMOV='I' usa ALINGR, si MHCMOV='S' usa ALSALI.
+        /// NO debe ser enviado en el POST, el sistema lo asigna automáticamente.
+        /// </summary>
         public int MHCOMP { get; set; }
         public int MHEJER { get; set; }
         public int MHFECH { get; set; }
@@ -95,7 +102,7 @@ namespace OdooCls.Application.Dtos
     /// <summary>
     /// Detalle del Movimiento (TMOVD) - TODOS LOS CAMPOS SON OBLIGATORIOS
     /// MDCMOV: Solo permite "S" (Salida) o "I" (Ingreso)
-    /// MDCOMP: Debe coincidir con MHCOMP del header
+    /// MDCOMP: AUTO-GENERADO, se asigna igual a MHCOMP. NO enviar en el POST.
     /// Formatos: Fechas YYYYMMDD (ej: 20210218)
     /// </summary>
     public class MovimientoDetailDto
@@ -105,6 +112,11 @@ namespace OdooCls.Application.Dtos
         [StringLength(1)] [RegularExpression("^[SI]$", ErrorMessage = "MDCMOV solo permite 'S' (Salida) o 'I' (Ingreso)")] 
         public string MDCMOV { get; set; } = string.Empty;
         [StringLength(20)] public string MDCOAR { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Número de vale del detalle - AUTO-GENERADO, debe coincidir con MHCOMP.
+        /// NO debe ser enviado en el POST, el sistema lo asigna automáticamente.
+        /// </summary>
         public int MDCOMP { get; set; }
         public int MDCORR { get; set; }
         public int MDEJER { get; set; }

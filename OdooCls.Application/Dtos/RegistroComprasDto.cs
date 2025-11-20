@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -43,9 +44,9 @@ namespace OdooCls.Application.Dtos
         public int RCFEVE { get; set; } = 0;
         public string RCNDOM { get; set; } = "";
         public string RCCPAG { get; set; } = "";
-    [StringLength(2)]
-    [RegularExpression("^(01|02|99)$", ErrorMessage = "RCSITU solo permite 01, 02 o 99")]
-    public string RCSITU { get; set; } = "";
+        [StringLength(2)]
+        [RegularExpression("^(01|02|99)$", ErrorMessage = "RCSITU solo permite 01, 02 o 99")]
+        public string RCSITU { get; set; } = "";
         public string RCUSIN { get; set; } = "";
         public int RCFEIN { get; set; } = 0;
         public int RCHOIN { get; set; } = 0;

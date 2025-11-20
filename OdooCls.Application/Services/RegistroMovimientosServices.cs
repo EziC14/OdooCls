@@ -29,11 +29,18 @@ namespace OdooCls.Application.Services
                 if (validacion.HttpStatusCode != 200)
                     return validacion;
 
-                // VERIFICAR SI YA EXISTE EL MOVIMIENTO
-                if (await repo.ExisteMovimiento(dto.Movimiento.MHEJER, dto.Movimiento.MHPERI, 
-                                                 dto.Movimiento.MHALMA, dto.Movimiento.MHCOMP))
-                    return new ApiResponse<RegistroMovimientosDto>(400, 6002, 
-                        $"Ya existe un movimiento con EJER={dto.Movimiento.MHEJER}, PERI={dto.Movimiento.MHPERI}, ALMA={dto.Movimiento.MHALMA}, COMP={dto.Movimiento.MHCOMP}");
+                // AUTO-GENERAR NÚMERO DE VALE (MHCOMP) DESDE TALMA
+                int nuevoVale = await repo.ObtenerYActualizarCorrelativo(dto.Movimiento.MHALMA, dto.Movimiento.MHCMOV);
+                if (nuevoVale == 0)
+                    return new ApiResponse<RegistroMovimientosDto>(500, 6001, 
+                        $"Error al generar número de vale desde TALMA para almacén {dto.Movimiento.MHALMA}");
+                
+                // Asignar el vale generado al movimiento y a todos los detalles
+                dto.Movimiento.MHCOMP = nuevoVale;
+                foreach (var detalle in dto.MovimientoDetails)
+                {
+                    detalle.MDCOMP = nuevoVale;
+                }
 
                 // ASIGNAR REFERENCIAS AUTOMÁTICAS SEGÚN EL TIPO (ANTES DE INSERTAR)
                 AsignarReferencias(dto);
@@ -179,10 +186,7 @@ namespace OdooCls.Application.Services
                     return new ApiResponse<RegistroMovimientosDto>(400, 6024, 
                         $"MDCMOV ({detalle.MDCMOV}) debe coincidir con MHCMOV ({dto.Movimiento.MHCMOV})");
 
-                // CRÍTICO: Validar que número de vale MDCOMP coincida con MHCOMP
-                if (detalle.MDCOMP != dto.Movimiento.MHCOMP)
-                    return new ApiResponse<RegistroMovimientosDto>(400, 6025, 
-                        $"MDCOMP ({detalle.MDCOMP}) debe coincidir con MHCOMP ({dto.Movimiento.MHCOMP}). Todos los detalles deben tener el mismo número de vale.");
+                // NOTA: MDCOMP y MHCOMP se auto-generan desde TALMA, no se validan aquí
 
                 if (detalle.MDEJER != dto.Movimiento.MHEJER)
                     return new ApiResponse<RegistroMovimientosDto>(400, 6026, 

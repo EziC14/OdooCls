@@ -6,6 +6,7 @@ namespace OdooCls.Core.Interfaces
     {
         // Métodos comunes (siempre se usan)
         Task<bool> ExisteMovimiento(int ejercicio, int periodo, string almacen, int comprobante);
+        Task<int> ObtenerYActualizarCorrelativo(string almacen, string tipoMovimiento);
         Task<bool> InsertTmovh(RegistroMovimiento movimiento);
         Task<bool> InsertTmovd(RegistroMovimientoDetail detalle);
         
