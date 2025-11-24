@@ -83,6 +83,125 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
+        /// <summary>
+        /// Valida que el tipo de movimiento exista en la tabla TTIMA
+        /// Esto es crítico para que la contabilidad no se descuadre
+        /// </summary>
+        public async Task<bool> ExisteTipoMovimiento(string clase, string tipo)
+        {
+            string query = $@"select count(1) from {library}.ttima where TMCLAS=? and TMTIPO=?";
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                using var cmd = new OdbcCommand(query, cn);
+                await cn.OpenAsync();
+                cmd.Parameters.AddWithValue("@TMCLAS", clase);
+                cmd.Parameters.AddWithValue("@TMTIPO", tipo);
+                var result = await cmd.ExecuteScalarAsync();
+                return Convert.ToInt32(result) > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<int> ObtenerYActualizarCorrelativoPedido(int puntoVenta)
+        {
+            string querySelect = $@"select PVPEDI from {library}.tptov where PVCODI=?";
+            string queryUpdate = $@"update {library}.tptov set PVPEDI=PVPEDI+1 where PVCODI=?";
+            
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                await cn.OpenAsync();
+                
+                using var transaction = cn.BeginTransaction();
+                try
+                {
+                    // 1. Obtener el correlativo actual con lock
+                    using var cmdSelect = new OdbcCommand(querySelect, cn, transaction);
+                    cmdSelect.Parameters.AddWithValue("@PVCODI", puntoVenta);
+                    var result = await cmdSelect.ExecuteScalarAsync();
+                    
+                    if (result == null || result == DBNull.Value)
+                    {
+                        transaction.Rollback();
+                        return 0;
+                    }
+                    
+                    int correlativo = Convert.ToInt32(result);
+                    int nuevoPedido = correlativo + 1;
+                    
+                    // 2. Actualizar el correlativo en TPTOV (incrementar en 1)
+                    using var cmdUpdate = new OdbcCommand(queryUpdate, cn, transaction);
+                    cmdUpdate.Parameters.AddWithValue("@PVCODI", puntoVenta);
+                    await cmdUpdate.ExecuteNonQueryAsync();
+                    
+                    transaction.Commit();
+                    return nuevoPedido;
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener correlativo de pedido: {ex.Message}");
+                return 0;
+            }
+        }
+
+        public async Task<int> ObtenerYActualizarCorrelativoNotaCredito(int puntoVenta)
+        {
+            string querySelect = $@"select PVNCRE from {library}.tptov where PVCODI=?";
+            string queryUpdate = $@"update {library}.tptov set PVNCRE=PVNCRE+1 where PVCODI=?";
+            
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                await cn.OpenAsync();
+                
+                using var transaction = cn.BeginTransaction();
+                try
+                {
+                    // 1. Obtener el correlativo actual con lock
+                    using var cmdSelect = new OdbcCommand(querySelect, cn, transaction);
+                    cmdSelect.Parameters.AddWithValue("@PVCODI", puntoVenta);
+                    var result = await cmdSelect.ExecuteScalarAsync();
+                    
+                    if (result == null || result == DBNull.Value)
+                    {
+                        transaction.Rollback();
+                        return 0;
+                    }
+                    
+                    int correlativo = Convert.ToInt32(result);
+                    int nuevaNC = correlativo + 1;
+                    
+                    // 2. Actualizar el correlativo en TPTOV (incrementar en 1)
+                    using var cmdUpdate = new OdbcCommand(queryUpdate, cn, transaction);
+                    cmdUpdate.Parameters.AddWithValue("@PVCODI", puntoVenta);
+                    await cmdUpdate.ExecuteNonQueryAsync();
+                    
+                    transaction.Commit();
+                    return nuevaNC;
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener correlativo de nota de crédito: {ex.Message}");
+                return 0;
+            }
+        }
+
         public async Task<bool> InsertTmovh(RegistroMovimiento m)
         {
             // MHASTO removido - no se usa

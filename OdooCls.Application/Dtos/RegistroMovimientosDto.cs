@@ -161,7 +161,7 @@ namespace OdooCls.Application.Dtos
         public int PHHOIN { get; set; }
         public int PHMONE { get; set; }
         public int PHNUME { get; set; }
-        public int PHPVTA { get; set; }
+        public int PHPVTA { get; set; };
     [StringLength(2)]
     [RegularExpression("^(01|02|99)$", ErrorMessage = "PHSITU solo permite 01, 02 o 99")]
     public string PHSITU { get; set; } = string.Empty;

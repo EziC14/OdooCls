@@ -25,7 +25,7 @@ namespace OdooCls.Application.Services
                     return new ApiResponse<RegistroMovimientosDto>(400, 6001, "No se recibieron datos en el archivo");
 
                 // VALIDAR CONSISTENCIA SEGÚN EL TIPO
-                var validacion = ValidarConsistencia(dto);
+                var validacion = await ValidarConsistenciaAsync(dto);
                 if (validacion.HttpStatusCode != 200)
                     return validacion;
 
@@ -40,6 +40,48 @@ namespace OdooCls.Application.Services
                 foreach (var detalle in dto.MovimientoDetails)
                 {
                     detalle.MDCOMP = nuevoVale;
+                }
+
+                // AUTO-GENERAR CORRELATIVOS DE PEDIDO O NOTA DE CRÉDITO SEGÚN EL TIPO
+                if (dto.Tipo == TipoMovimiento.PEDIDO && dto.Pedido != null)
+                {
+                    int puntoVenta = dto.Pedido.PHPVTA;
+                    int nuevoPedido = await repo.ObtenerYActualizarCorrelativoPedido(puntoVenta);
+                    if (nuevoPedido == 0)
+                        return new ApiResponse<RegistroMovimientosDto>(500, 6002, 
+                            $"Error al generar número de pedido desde TPTOV para punto de venta {puntoVenta}");
+                    
+                    // Asignar el número de pedido generado
+                    dto.Pedido.PHNUME = nuevoPedido;
+                    
+                    // Asignar también a todos los detalles de pedido
+                    if (dto.PedidoDetails != null)
+                    {
+                        foreach (var detalle in dto.PedidoDetails)
+                        {
+                            detalle.PDNUME = nuevoPedido;
+                        }
+                    }
+                }
+                else if (dto.Tipo == TipoMovimiento.NOTA_CREDITO && dto.NotaCredito != null)
+                {
+                    int puntoVenta = dto.NotaCredito.NHPVTA;
+                    int nuevaNC = await repo.ObtenerYActualizarCorrelativoNotaCredito(puntoVenta);
+                    if (nuevaNC == 0)
+                        return new ApiResponse<RegistroMovimientosDto>(500, 6002, 
+                            $"Error al generar número de nota de crédito desde TPTOV para punto de venta {puntoVenta}");
+                    
+                    // Asignar el número de NC generado
+                    dto.NotaCredito.NHNUME = nuevaNC;
+                    
+                    // Asignar también a todos los detalles de NC
+                    if (dto.NotaCreditoDetails != null)
+                    {
+                        foreach (var detalle in dto.NotaCreditoDetails)
+                        {
+                            detalle.NCNUME = nuevaNC;
+                        }
+                    }
                 }
 
                 // ASIGNAR REFERENCIAS AUTOMÁTICAS SEGÚN EL TIPO (ANTES DE INSERTAR)
@@ -81,12 +123,6 @@ namespace OdooCls.Application.Services
                 return new ApiResponse<RegistroMovimientosDto>(500, 500, $"Error interno del servidor: {ex.Message}");
             }
         }
-
-        /// <summary>
-        /// Asigna referencias automáticas en TMOVH según el tipo de movimiento
-        /// PEDIDO: MHREF1=cliente, MHREF2=doc, MHREF3=número pedido
-        /// NC: MHREF1=cliente, MHREF2=doc, MHREF3=número nota
-        /// </summary>
         private void AsignarReferencias(RegistroMovimientosDto dto)
         {
             if (dto.Tipo == TipoMovimiento.PEDIDO && dto.Pedido != null)
@@ -143,7 +179,7 @@ namespace OdooCls.Application.Services
                 "Movimiento tipo PEDIDO registrado correctamente (TMOVH + TMOVD + TPEDH + TPEDD)");
         }
 
-        private ApiResponse<RegistroMovimientosDto> ValidarConsistencia(RegistroMovimientosDto dto)
+        private async Task<ApiResponse<RegistroMovimientosDto>> ValidarConsistenciaAsync(RegistroMovimientosDto dto)
         {
             // 1. Validar que hay al menos 1 detalle
             if (dto.MovimientoDetails == null || !dto.MovimientoDetails.Any())
@@ -161,6 +197,17 @@ namespace OdooCls.Application.Services
             if (dto.Tipo == TipoMovimiento.NOTA_CREDITO && dto.Movimiento.MHCMOV != "I")
                 return new ApiResponse<RegistroMovimientosDto>(400, 6021, 
                     "Para NOTA_CREDITO, MHCMOV debe ser 'I' (Ingreso)");
+
+            // 1.3 CRÍTICO: Validar que el tipo de movimiento exista en TTIMA
+            // Esto evita que la contabilidad se descuadre al no poder clasificar el movimiento
+            string clase = dto.Movimiento.MHCMOV;
+            string tipo = dto.Movimiento.MHTMOV; 
+            
+            bool existeTipo = await repo.ExisteTipoMovimiento(clase, tipo);
+            if (!existeTipo)
+                return new ApiResponse<RegistroMovimientosDto>(400, 6019, 
+                    $"El tipo de movimiento MHTMOV='{tipo}' con clase MHCMOV='{clase}' no existe en la tabla TTIMA. " +
+                    $"Este tipo debe estar registrado en el sistema para que la contabilidad no se descuadre.");
 
             // 2. Validar consistencia entre TMOVH y TMOVD
             foreach (var detalle in dto.MovimientoDetails)

@@ -10,11 +10,16 @@ namespace OdooCls.Core.Interfaces
         Task<bool> InsertTmovh(RegistroMovimiento movimiento);
         Task<bool> InsertTmovd(RegistroMovimientoDetail detalle);
         
+        // Validación de tipo de movimiento contra TTIMA
+        Task<bool> ExisteTipoMovimiento(string clase, string tipo);
+        
         // Métodos para PEDIDO
+        Task<int> ObtenerYActualizarCorrelativoPedido(int puntoVenta);
         Task<bool> InsertTpedh(RegistroPedido pedido);
         Task<bool> InsertTpedd(RegistroPedidoDetail detalle);
         
         // Métodos para NOTA_CREDITO
+        Task<int> ObtenerYActualizarCorrelativoNotaCredito(int puntoVenta);
         Task<bool> InsertTncdh(RegistroNotaCredito notaCredito);
         Task<bool> InsertTncdd(RegistroNotaCreditoDetail detalle);
         
