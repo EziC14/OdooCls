@@ -26,12 +26,32 @@ namespace OdooCls.Infrastucture.Repositorys
             connectionString = this.configuration["ConnectionStrings:ERPConexion"];
         }
 
+        private static bool CallLibreria(OdbcConnection cn)
+        {
+            string sql = "CALL SPEED407.MA1004 ('XX')";
+            using var cmd = new OdbcCommand(sql, cn);
+            try
+            {
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+            catch (Exception E)
+            {
+                Console.WriteLine($"Error configurando bibliotecas: {E.Message}");
+                return false;
+            }
+        }
+
         public int GetNextCorr(string periodo)
         {
            
             using (var connection = new OdbcConnection(connectionString))
             {
                connection.Open();
+               
+               if (!CallLibreria(connection))
+                   return 0;
+               
                 using var cmd = new OdbcCommand("{ CALL speed400xx.SP_GET_NEXT_TTABD(?, ?) }", connection)
                 {
                     CommandType = CommandType.StoredProcedure
@@ -74,6 +94,10 @@ namespace OdooCls.Infrastucture.Repositorys
                     using OdbcCommand cmd = new OdbcCommand(Query, cn);
                     {  
                        await cn.OpenAsync();
+                       
+                       if (!CallLibreria(cn))
+                           return false;
+                       
                         cmd.CommandType = CommandType.Text;
                         cmd.Parameters.AddWithValue("@RCEJER", registro.RCEJER);
                         cmd.Parameters.AddWithValue("@RCPERI", registro.RCPERI);
@@ -146,6 +170,10 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 OdbcCommand command = new OdbcCommand(Query, connection);
                 await connection.OpenAsync();
+                
+                if (!CallLibreria(connection))
+                    return false;
+                
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
                     // Verificar si se encontró algún dato
@@ -169,6 +197,10 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 OdbcCommand command = new OdbcCommand(Query, connection);
                 await connection.OpenAsync();
+                
+                if (!CallLibreria(connection))
+                    return false;
+                
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
                     // Verificar si se encontró algún dato
@@ -192,6 +224,10 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 OdbcCommand command = new OdbcCommand(Query, connection);
                 await connection.OpenAsync();
+                
+                if (!CallLibreria(connection))
+                    return false;
+                
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
                     // Verificar si se encontró algún dato
@@ -216,6 +252,10 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 OdbcCommand command = new OdbcCommand(Query, connection);
                 await connection.OpenAsync();
+                
+                if (!CallLibreria(connection))
+                    return false;
+                
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
                     // Verificar si se encontró algún dato
@@ -263,6 +303,10 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 OdbcCommand command = new OdbcCommand(Query, connection);
                 await connection.OpenAsync();
+                
+                if (!CallLibreria(connection))
+                    return false;
+                
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
                     // Verificar si se encontró algún dato

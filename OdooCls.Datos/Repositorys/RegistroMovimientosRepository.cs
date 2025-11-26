@@ -19,6 +19,22 @@ namespace OdooCls.Infrastucture.Repositorys
             connectionString = this.configuration["ConnectionStrings:ERPConexion"];
         }
 
+        private static bool CallLibreria(OdbcConnection cn)
+        {
+            string sql = "CALL SPEED407.MA1004 ('XX')";
+            using var cmd = new OdbcCommand(sql, cn);
+            try
+            {
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+            catch (Exception E)
+            {
+                Console.WriteLine($"Error configurando bibliotecas: {E.Message}");
+                return false;
+            }
+        }
+
         public async Task<bool> ExisteMovimiento(int ejercicio, int periodo, string almacen, int comprobante)
         {
             string q = $@"select count(1) from {library}.tmovh 
@@ -28,6 +44,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(q, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.Parameters.AddWithValue("@MHEJER", ejercicio);
                 cmd.Parameters.AddWithValue("@MHPERI", periodo);
                 cmd.Parameters.AddWithValue("@MHALMA", almacen);
@@ -41,12 +61,6 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
-        /// <summary>
-        /// Obtiene y actualiza el correlativo de vale desde TALMA
-        /// Si tipoMovimiento = "I" usa ALINGR (Ingresos)
-        /// Si tipoMovimiento = "S" usa ALSALI (Salidas)
-        /// Devuelve el número de vale generado, o 0 si hay error
-        /// </summary>
         public async Task<int> ObtenerYActualizarCorrelativo(string almacen, string tipoMovimiento)
         {
             string campoCorrelativo = tipoMovimiento == "I" ? "ALINGR" : "ALSALI";
@@ -57,6 +71,9 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 using var cn = new OdbcConnection(connectionString);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return 0;
                 
                 // 1. Obtener el correlativo actual
                 using var cmdSelect = new OdbcCommand(querySelect, cn);
@@ -95,6 +112,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.Parameters.AddWithValue("@TMCLAS", clase);
                 cmd.Parameters.AddWithValue("@TMTIPO", tipo);
                 var result = await cmd.ExecuteScalarAsync();
@@ -115,6 +136,9 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 using var cn = new OdbcConnection(connectionString);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return 0;
                 
                 using var transaction = cn.BeginTransaction();
                 try
@@ -164,6 +188,9 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 await cn.OpenAsync();
                 
+                if (!CallLibreria(cn))
+                    return 0;
+                
                 using var transaction = cn.BeginTransaction();
                 try
                 {
@@ -205,7 +232,7 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> InsertTmovh(RegistroMovimiento m)
         {
             // MHASTO removido - no se usa
-            string query = $@"insert into {library}.tmovh 
+            string query = $@"insert into {library}.tmovh     
                 (MHALMA, MHCHOF, MHCMOV, MHCOMP, MHEJER, MHFECH, MHFEIN, MHFEMD, 
                  MHHOIN, MHHOMD, MHHRE1, MHHRE2, MHHRE3, MHPERI, MHREF1, MHREF2, MHREF3, 
                  MHREF4, MHREF5, MHSITD, MHSITU, MHTMOV, MHUSEA, MHUSER, MHUSIN, MHUSMD, MHVEHI)
@@ -215,6 +242,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@MHALMA", m.MHALMA);
                 // MHASTO - Removido
@@ -266,6 +297,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@MDACTI", d.MDACTI);
                 cmd.Parameters.AddWithValue("@MDALMA", d.MDALMA);
@@ -327,6 +362,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@PHALMA", p.PHALMA);
                 cmd.Parameters.AddWithValue("@PHAUTO", p.PHAUTO);
@@ -418,6 +457,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@PDARTI", d.PDARTI);
                 cmd.Parameters.AddWithValue("@PDCAN1", d.PDCAN1);
@@ -505,6 +548,9 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
                 cmd.Parameters.AddWithValue("@NHALMA", nc.NHALMA);
                 cmd.Parameters.AddWithValue("@NHCLIE", nc.NHCLIE);
                 cmd.Parameters.AddWithValue("@NHCOST", nc.NHCOST);
@@ -561,6 +607,9 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
                 cmd.Parameters.AddWithValue("@NCARTI", nc.NCARTI);
                 cmd.Parameters.AddWithValue("@NCCANT", nc.NCCANT);
                 cmd.Parameters.AddWithValue("@NCCEQU", nc.NCCEQU);

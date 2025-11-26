@@ -27,6 +27,22 @@ namespace OdooCls.Infrastucture.Repositorys
             connectionString = this.configuration["ConnectionStrings:ERPConexion"];
         }
 
+        private static bool CallLibreria(OdbcConnection cn)
+        {
+            string sql = "CALL SPEED407.MA1004 ('XX')";
+            using var cmd = new OdbcCommand(sql, cn);
+            try
+            {
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+            catch (Exception E)
+            {
+                Console.WriteLine($"Error configurando bibliotecas: {E.Message}");
+                return false;
+            }
+        }
+
         public async Task<bool> InsertCtxC(int ejercicio, int mes, string Tipodoc, string nrodoc)
         {
             bool rp = false;
@@ -44,6 +60,10 @@ namespace OdooCls.Infrastucture.Repositorys
                     using OdbcCommand cmd = new OdbcCommand(query, cn);
                     {
                       await  cn.OpenAsync();
+                      
+                      if (!CallLibreria(cn))
+                          return false;
+                      
                         cmd.CommandType = CommandType.Text;
                       await  cmd.ExecuteNonQueryAsync();
                         cn.Close();
@@ -75,6 +95,10 @@ namespace OdooCls.Infrastucture.Repositorys
                     using OdbcCommand cmd = new OdbcCommand(Query, cn);
                     {
                         cn.Open();
+                        
+                        if (!CallLibreria(cn))
+                            return false;
+                        
                         cmd.CommandType = CommandType.Text;
                         cmd.Parameters.AddWithValue("@RVEJER", registroVentas.RVEJER);
                         cmd.Parameters.AddWithValue("@RVPERI", registroVentas.RVPERI);
@@ -181,6 +205,10 @@ namespace OdooCls.Infrastucture.Repositorys
                                 using OdbcCommand cmd = new OdbcCommand(Query, cn);
                                 {
                                     await cn.OpenAsync();
+                                    
+                                    if (!CallLibreria(cn))
+                                        return false;
+                                    
                                     cmd.CommandType = CommandType.Text;
                                     cmd.Parameters.AddWithValue("@RVEJER", registro.RVEJER);
                                     cmd.Parameters.AddWithValue("@RVPERI", registro.RVPERI);
@@ -226,6 +254,10 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 OdbcCommand command = new OdbcCommand(Query, connection);
                 await connection.OpenAsync();
+                
+                if (!CallLibreria(connection))
+                    return false;
+                
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
                     // Verificar si se encontró algún dato
@@ -249,6 +281,10 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 OdbcCommand command = new OdbcCommand(Query, connection);
                 await connection.OpenAsync();
+                
+                if (!CallLibreria(connection))
+                    return false;
+                
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
                     // Verificar si se encontró algún dato
@@ -272,6 +308,10 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 OdbcCommand command = new OdbcCommand(Query, connection);
                 await connection.OpenAsync();
+                
+                if (!CallLibreria(connection))
+                    return false;
+                
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
                     // Verificar si se encontró algún dato
@@ -295,6 +335,10 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 OdbcCommand command = new OdbcCommand(Query, connection);
                 await connection.OpenAsync();
+                
+                if (!CallLibreria(connection))
+                    return false;
+                
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
                     // Verificar si se encontró algún dato
@@ -347,6 +391,10 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 OdbcCommand command = new OdbcCommand(Query, connection);
                 await connection.OpenAsync();
+                
+                if (!CallLibreria(connection))
+                    return false;
+                
                 using (OdbcDataReader reader = (OdbcDataReader) await command.ExecuteReaderAsync())
                 {
                     // Verificar si se encontró algún dato

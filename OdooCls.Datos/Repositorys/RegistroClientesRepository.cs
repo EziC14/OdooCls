@@ -19,6 +19,22 @@ namespace OdooCls.Infrastucture.Repositorys
             connectionString = this.configuration["ConnectionStrings:ERPConexion"];
         }
 
+        private static bool CallLibreria(OdbcConnection cn)
+        {
+            string sql = "CALL SPEED407.MA1004 ('XX')";
+            using var cmd = new OdbcCommand(sql, cn);
+            try
+            {
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+            catch (Exception E)
+            {
+                Console.WriteLine($"Error configurando bibliotecas: {E.Message}");
+                return false;
+            }
+        }
+
         public async Task<bool> InsertTclie(RegistroCliente c)
         {
             string query = $@"insert into {library}.tclie 
@@ -29,6 +45,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@CLICVE", c.CLICVE);
                 cmd.Parameters.AddWithValue("@CLINOM", c.CLINOM);
@@ -60,6 +80,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@CLINOM", nombre);
                 cmd.Parameters.AddWithValue("@CLISIT", situacion);
@@ -81,6 +105,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(q, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.Parameters.AddWithValue("@CLICVE", clicve);
                 var result = await cmd.ExecuteScalarAsync();
                 return Convert.ToInt32(result) > 0;
@@ -100,6 +128,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cmd = new OdbcCommand(q, cn);
                 cmd.CommandTimeout = 5;
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    throw new Exception("Error al configurar bibliotecas AS400");
+                
                 cmd.Parameters.AddWithValue("@CLIRUC", ruc);
                 var result = await cmd.ExecuteScalarAsync();
                 return Convert.ToInt32(result) > 0;

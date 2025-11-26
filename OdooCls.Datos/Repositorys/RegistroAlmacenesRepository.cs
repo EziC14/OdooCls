@@ -19,6 +19,22 @@ namespace OdooCls.Infrastucture.Repositorys
             connectionString = this.configuration["ConnectionStrings:ERPConexion"];
         }
 
+        private static bool CallLibreria(OdbcConnection cn)
+        {
+            string sql = "CALL SPEED407.MA1004 ('XX')";
+            using var cmd = new OdbcCommand(sql, cn);
+            try
+            {
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+            catch (Exception E)
+            {
+                Console.WriteLine($"Error configurando bibliotecas: {E.Message}");
+                return false;
+            }
+        }
+
         public async Task<bool> InsertTalma(RegistroAlmacen a)
         {
             string query = $@"insert into {library}.talma 
@@ -29,6 +45,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@ALCODI", a.ALCODI);
                 cmd.Parameters.AddWithValue("@ALNOMB", a.ALNOMB);
@@ -64,6 +84,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@ALNOMB", nombre);
                 cmd.Parameters.AddWithValue("@ALSITU", situacion);
@@ -85,6 +109,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(q, cn);
                 await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return false;
+                
                 cmd.Parameters.AddWithValue("@ALCODI", alcodi);
                 var result = await cmd.ExecuteScalarAsync();
                 return Convert.ToInt32(result) > 0;
