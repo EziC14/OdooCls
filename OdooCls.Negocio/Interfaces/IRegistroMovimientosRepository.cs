@@ -23,6 +23,10 @@ namespace OdooCls.Core.Interfaces
         Task<bool> InsertTncdh(RegistroNotaCredito notaCredito);
         Task<bool> InsertTncdd(RegistroNotaCreditoDetail detalle);
         
+        // Métodos para actualización de stock y valorización
+        Task<bool> ActualizarStock(string almacen, string articulo, decimal cantidad, string tipoMovimiento);
+        Task<bool> ValorizarMovimiento(int ejercicio, int periodo, string almacen, string clase, int comprobante);
+        
         // Para INVENTARIO solo se usan InsertTmovh e InsertTmovd
     }
 }

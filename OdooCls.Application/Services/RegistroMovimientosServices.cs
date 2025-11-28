@@ -92,13 +92,41 @@ namespace OdooCls.Application.Services
                 if (!await repo.InsertTmovh(movimientoHeader))
                     return new ApiResponse<RegistroMovimientosDto>(500, 6003, "Error al insertar TMOVH (Movimiento Header)");
 
-                // 2. INSERT TMOVD (Detalles Movimiento) - SIEMPRE
+                // 2. INSERT TMOVD (Detalles Movimiento) Y ACTUALIZAR STOCK - SIEMPRE
                 foreach (var detalle in dto.MovimientoDetails)
                 {
+                    // 2a. Insertar detalle de movimiento
                     var movimientoDetail = RegistroMovimientosMapper.MovimientoDetailToEntity(detalle);
                     if (!await repo.InsertTmovd(movimientoDetail))
                         return new ApiResponse<RegistroMovimientosDto>(500, 6004, 
                             $"Error al insertar TMOVD (Movimiento Detail) para artículo {detalle.MDCOAR}");
+
+                    // 2b. ⭐ ACTUALIZAR STOCK en TSALM inmediatamente
+                    var stockOk = await repo.ActualizarStock(
+                        detalle.MDALMA,
+                        detalle.MDCOAR,
+                        detalle.MDCANA,
+                        detalle.MDCMOV
+                    );
+                    
+                    if (!stockOk)
+                    {
+                        Console.WriteLine($"⚠️ Advertencia: No se actualizó stock para artículo {detalle.MDCOAR}");
+                    }
+                }
+
+                // 2c. ⭐ VALORIZAR movimiento (llama SPL0010) DESPUÉS de todos los detalles
+                var valorizacionOk = await repo.ValorizarMovimiento(
+                    dto.Movimiento.MHEJER,
+                    dto.Movimiento.MHPERI,
+                    dto.Movimiento.MHALMA,
+                    dto.Movimiento.MHCMOV,
+                    dto.Movimiento.MHCOMP
+                );
+
+                if (!valorizacionOk)
+                {
+                    Console.WriteLine("⚠️ Advertencia: Movimiento insertado pero valorización falló");
                 }
 
                 // 3 Y 4. INSERTAR SEGÚN EL TIPO

@@ -45,9 +45,6 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cmd = new OdbcCommand(q, cn);
                 await cn.OpenAsync();
                 
-                if (!CallLibreria(cn))
-                    return false;
-                
                 cmd.Parameters.AddWithValue("@MHEJER", ejercicio);
                 cmd.Parameters.AddWithValue("@MHPERI", periodo);
                 cmd.Parameters.AddWithValue("@MHALMA", almacen);
@@ -71,9 +68,6 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 using var cn = new OdbcConnection(connectionString);
                 await cn.OpenAsync();
-                
-                if (!CallLibreria(cn))
-                    return 0;
                 
                 // 1. Obtener el correlativo actual
                 using var cmdSelect = new OdbcCommand(querySelect, cn);
@@ -112,10 +106,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
-                
-                if (!CallLibreria(cn))
-                    return false;
-                
+                            
                 cmd.Parameters.AddWithValue("@TMCLAS", clase);
                 cmd.Parameters.AddWithValue("@TMTIPO", tipo);
                 var result = await cmd.ExecuteScalarAsync();
@@ -136,9 +127,6 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 using var cn = new OdbcConnection(connectionString);
                 await cn.OpenAsync();
-                
-                if (!CallLibreria(cn))
-                    return 0;
                 
                 using var transaction = cn.BeginTransaction();
                 try
@@ -187,9 +175,6 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 using var cn = new OdbcConnection(connectionString);
                 await cn.OpenAsync();
-                
-                if (!CallLibreria(cn))
-                    return 0;
                 
                 using var transaction = cn.BeginTransaction();
                 try
@@ -241,10 +226,7 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
-                await cn.OpenAsync();
-                
-                if (!CallLibreria(cn))
-                    return false;
+                await cn.OpenAsync();               
                 
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@MHALMA", m.MHALMA);
@@ -362,10 +344,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cn = new OdbcConnection(connectionString);
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
-                
-                if (!CallLibreria(cn))
-                    return false;
-                
+                               
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@PHALMA", p.PHALMA);
                 cmd.Parameters.AddWithValue("@PHAUTO", p.PHAUTO);
@@ -458,8 +437,6 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
                 
-                if (!CallLibreria(cn))
-                    return false;
                 
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@PDARTI", d.PDARTI);
@@ -549,8 +526,6 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
                 
-                if (!CallLibreria(cn))
-                    return false;
                 cmd.Parameters.AddWithValue("@NHALMA", nc.NHALMA);
                 cmd.Parameters.AddWithValue("@NHCLIE", nc.NHCLIE);
                 cmd.Parameters.AddWithValue("@NHCOST", nc.NHCOST);
@@ -608,8 +583,6 @@ namespace OdooCls.Infrastucture.Repositorys
                 using var cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
                 
-                if (!CallLibreria(cn))
-                    return false;
                 cmd.Parameters.AddWithValue("@NCARTI", nc.NCARTI);
                 cmd.Parameters.AddWithValue("@NCCANT", nc.NCCANT);
                 cmd.Parameters.AddWithValue("@NCCEQU", nc.NCCEQU);
@@ -654,6 +627,102 @@ namespace OdooCls.Infrastucture.Repositorys
             }
             catch
             {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Actualiza el stock en TSALM después de insertar movimiento
+        /// Maneja ingresos (I) y salidas (S)
+        /// </summary>
+        public async Task<bool> ActualizarStock(string almacen, string articulo, decimal cantidad, string tipoMovimiento)
+        {
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                await cn.OpenAsync();
+
+                // 1. Verificar si existe el artículo en TSALM
+                string queryExiste = $@"SELECT COUNT(1) FROM {library}.TSALM 
+                                       WHERE SALALM=? AND SALCOD=?";
+                
+                using var cmdExiste = new OdbcCommand(queryExiste, cn);
+                cmdExiste.Parameters.AddWithValue("@SALALM", almacen);
+                cmdExiste.Parameters.AddWithValue("@SALCOD", articulo);
+                var existe = Convert.ToInt32(await cmdExiste.ExecuteScalarAsync()) > 0;
+
+                if (existe)
+                {
+                    // 2a. ACTUALIZAR stock existente
+                    string queryUpdate = tipoMovimiento == "I"
+                        ? $@"UPDATE {library}.TSALM SET SALACT=SALACT+? WHERE SALALM=? AND SALCOD=?"
+                        : $@"UPDATE {library}.TSALM SET SALACT=SALACT-? WHERE SALALM=? AND SALCOD=?";
+                    
+                    using var cmdUpdate = new OdbcCommand(queryUpdate, cn);
+                    cmdUpdate.Parameters.AddWithValue("@cantidad", cantidad);
+                    cmdUpdate.Parameters.AddWithValue("@SALALM", almacen);
+                    cmdUpdate.Parameters.AddWithValue("@SALCOD", articulo);
+                    await cmdUpdate.ExecuteNonQueryAsync();
+                }
+                else
+                {
+                    // 2b. INSERTAR nuevo registro (solo para ingresos)
+                    if (tipoMovimiento == "I")
+                    {
+                        string queryInsert = $@"INSERT INTO {library}.TSALM 
+                            (SALALM, SALCOD, SALACT, SALCOM, SALTRA) 
+                            VALUES (?, ?, ?, 0, 0)";
+                        
+                        using var cmdInsert = new OdbcCommand(queryInsert, cn);
+                        cmdInsert.Parameters.AddWithValue("@SALALM", almacen);
+                        cmdInsert.Parameters.AddWithValue("@SALCOD", articulo);
+                        cmdInsert.Parameters.AddWithValue("@SALACT", cantidad);
+                        await cmdInsert.ExecuteNonQueryAsync();
+                    }
+                    else
+                    {
+                        Console.WriteLine($"ERROR: No existe stock para artículo {articulo} en almacén {almacen}");
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error actualizando stock: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Ejecuta el procedimiento SPL0010 que valoriza el movimiento
+        /// Debe llamarse DESPUÉS de insertar todos los detalles
+        /// </summary>
+        public async Task<bool> ValorizarMovimiento(int ejercicio, int periodo, string almacen, string clase, int comprobante)
+        {
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                await cn.OpenAsync();
+
+                if (!CallLibreria(cn))
+                    return false;
+
+                // Construir cadena: AAEEPPPCNNNNNN (Almacen+Ejercicio+Periodo+Clase+Comprobante)
+                string cadenaVale = $"{almacen.PadLeft(2, '0')}{ejercicio}{periodo.ToString().PadLeft(2, '0')}{clase}{comprobante.ToString().PadLeft(6, '0')}";
+                
+                string query = $"CALL {library}.SPL0010 (?)";
+                using var cmd = new OdbcCommand(query, cn);
+                cmd.Parameters.AddWithValue("@cadena", cadenaVale);
+                
+                await cmd.ExecuteNonQueryAsync();
+                Console.WriteLine($"✅ Valorización ejecutada: {cadenaVale}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error en valorización: {ex.Message}");
                 return false;
             }
         }
