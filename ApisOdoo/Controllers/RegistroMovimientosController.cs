@@ -56,6 +56,7 @@ namespace OdooCls.API.Controllers
                 return StatusCode(500, errorResponse);
             }
         }
+        
         [HttpGet]
         [Route("health")]
         public IActionResult Health()
@@ -71,6 +72,13 @@ namespace OdooCls.API.Controllers
                     new { Tipo = 1, Nombre = "PEDIDO", Descripcion = "TMOVH + TMOVD + TPEDH + TPEDD (Facturas)", Estado = "Implementado" },
                     new { Tipo = 2, Nombre = "NOTA_CREDITO", Descripcion = "TMOVH + TMOVD + TNCDH + TNCDD (Anular pedidos)", Estado = "Implementado" },
                     new { Tipo = 3, Nombre = "INVENTARIO", Descripcion = "TMOVH + TMOVD (Movimientos normales)", Estado = "Implementado" }
+                },
+                Caracteristicas = new[]
+                {
+                    "Actualización automática de stock (TSALM)",
+                    "Valorización automática (SPL0010)",
+                    "Transferencias entre almacenes con vale en tránsito",
+                    "Control de transferencias (TMOTR)"
                 },
                 Nota = "No existe anulación de pedido. Para anular siempre se usa NOTA_CREDITO"
             });

@@ -25,7 +25,13 @@ namespace OdooCls.Core.Interfaces
         
         // Métodos para actualización de stock y valorización
         Task<bool> ActualizarStock(string almacen, string articulo, decimal cantidad, string tipoMovimiento);
-        Task<bool> ValorizarMovimiento(int ejercicio, int periodo, string almacen, string clase, int comprobante);
+        
+        // Métodos para transferencias entre almacenes
+        bool EsTransferencia(string tipoMovimiento);
+        Task<bool> ActualizarStockTransito(string almacen, string articulo, decimal cantidad, string operacion);
+        Task<bool> InsertTmotr(string almacenOrigen, int ejercicio, int periodo, string claseOrigen, int valeOrigen, int correlativo,
+            string tipoMovimiento, string tipo, string almacenDestino, string claseDestino, int valeDestino);
+        Task<bool> ConfirmarRecepcionTransferencia(string almacenDestino, int ejercicio, int periodo, int valeIngreso);
         
         // Para INVENTARIO solo se usan InsertTmovh e InsertTmovd
     }

@@ -92,41 +92,57 @@ namespace OdooCls.Application.Services
                 if (!await repo.InsertTmovh(movimientoHeader))
                     return new ApiResponse<RegistroMovimientosDto>(500, 6003, "Error al insertar TMOVH (Movimiento Header)");
 
-                // 2. INSERT TMOVD (Detalles Movimiento) Y ACTUALIZAR STOCK - SIEMPRE
+                // 2. VERIFICAR SI ES TRANSFERENCIA (solo tipo 99)
+                bool esTransferencia = repo.EsTransferencia(dto.Movimiento.MHTMOV);
+                string almacenDestino = dto.Movimiento.MHHRE1; // El almacén destino se envía en MHHRE1
+
+                // 2a. INSERT TMOVD (Detalles Movimiento) Y ACTUALIZAR STOCK - SIEMPRE
                 foreach (var detalle in dto.MovimientoDetails)
                 {
-                    // 2a. Insertar detalle de movimiento
+                    // 2a.1. Insertar detalle de movimiento
                     var movimientoDetail = RegistroMovimientosMapper.MovimientoDetailToEntity(detalle);
                     if (!await repo.InsertTmovd(movimientoDetail))
                         return new ApiResponse<RegistroMovimientosDto>(500, 6004, 
                             $"Error al insertar TMOVD (Movimiento Detail) para artículo {detalle.MDCOAR}");
 
-                    // 2b. ⭐ ACTUALIZAR STOCK en TSALM inmediatamente
-                    var stockOk = await repo.ActualizarStock(
-                        detalle.MDALMA,
-                        detalle.MDCOAR,
-                        detalle.MDCANA,
-                        detalle.MDCMOV
-                    );
-                    
-                    if (!stockOk)
+                    // 2a.2. ⭐ ACTUALIZAR STOCK en TSALM
+                    if (esTransferencia && dto.Movimiento.MHCMOV == "S" && !string.IsNullOrEmpty(almacenDestino))
                     {
-                        Console.WriteLine($"⚠️ Advertencia: No se actualizó stock para artículo {detalle.MDCOAR}");
+                        // ✅ SOLO descontar en origen
+                        var stockOkOrigen = await repo.ActualizarStock(
+                            detalle.MDALMA,
+                            detalle.MDCOAR,
+                            detalle.MDCANA,
+                            "S"
+                        );
+                        if (!stockOkOrigen)
+                            Console.WriteLine($"⚠️ Advertencia: No se descontó stock en origen para artículo {detalle.MDCOAR}");
+                        
+                    }
+                    else
+                    {
+                        // Otros movimientos: solo actualiza según tipo
+                        var stockOk = await repo.ActualizarStock(
+                            detalle.MDALMA,
+                            detalle.MDCOAR,
+                            detalle.MDCANA,
+                            detalle.MDCMOV
+                        );
+                        if (!stockOk)
+                            Console.WriteLine($"⚠️ Advertencia: No se actualizó stock para artículo {detalle.MDCOAR}");
                     }
                 }
 
-                // 2c. ⭐ VALORIZAR movimiento (llama SPL0010) DESPUÉS de todos los detalles
-                var valorizacionOk = await repo.ValorizarMovimiento(
-                    dto.Movimiento.MHEJER,
-                    dto.Movimiento.MHPERI,
-                    dto.Movimiento.MHALMA,
-                    dto.Movimiento.MHCMOV,
-                    dto.Movimiento.MHCOMP
-                );
+                // 2b. (Eliminado) No existe valorización en este sistema.
 
-                if (!valorizacionOk)
+                // 2c. ⭐ SI ES TRANSFERENCIA (tipo 99): Generar movimiento de INGRESO automático
+                if (esTransferencia && dto.Movimiento.MHCMOV == "S" && !string.IsNullOrEmpty(almacenDestino))
                 {
-                    Console.WriteLine("⚠️ Advertencia: Movimiento insertado pero valorización falló");
+                    var transferOk = await ProcesarTransferencia(dto, almacenDestino);
+                    if (!transferOk)
+                    {
+                        Console.WriteLine("⚠️ Advertencia: Salida registrada pero ingreso automático falló");
+                    }
                 }
 
                 // 3 Y 4. INSERTAR SEGÚN EL TIPO
@@ -388,6 +404,231 @@ namespace OdooCls.Application.Services
             // No hay tablas adicionales que insertar
             return new ApiResponse<RegistroMovimientosDto>(200, 1000, 
                 "Movimiento tipo INVENTARIO registrado correctamente (TMOVH + TMOVD)");
+        }
+
+        // ==================== PROCESAR TRANSFERENCIA ====================
+
+        /// <summary>
+        /// Genera movimiento de INGRESO automático cuando hay una SALIDA por transferencia (tipo 99)
+        /// El ingreso se crea DIRECTAMENTE como registrado (MHSITU="01"), NO pasa por tránsito.
+        /// CAMPOS OBLIGATORIOS MÍNIMOS para TMOVH:
+        /// - MHALMA (almacén destino), MHEJER, MHPERI, MHCMOV="I", MHCOMP, MHFECH
+        /// - MHTMOV="99", MHSITU="01", MHHRE1 (almacén origen), MHUSER
+        /// </summary>
+        private async Task<bool> ProcesarTransferencia(RegistroMovimientosDto dtoSalida, string almacenDestino)
+        {
+            try
+            {
+                // 1. Generar correlativo para el INGRESO en almacén destino
+                int valeIngreso = await repo.ObtenerYActualizarCorrelativo(almacenDestino, "I");
+                if (valeIngreso == 0)
+                {
+                    Console.WriteLine($"❌ Error al generar vale de ingreso para almacén {almacenDestino}");
+                    return false;
+                }
+
+                // 2. Crear cabecera de INGRESO en almacén destino (REGISTRADO DIRECTO)
+                // ✅ Solo campos OBLIGATORIOS + opcionales útiles
+                var movimientoIngreso = new RegistroMovimiento
+                {
+                    // ✔ OBLIGATORIOS
+                    MHALMA = almacenDestino,           // Almacén destino
+                    MHEJER = dtoSalida.Movimiento.MHEJER,
+                    MHPERI = dtoSalida.Movimiento.MHPERI,
+                    MHCMOV = "I",                      // Ingreso
+                    MHCOMP = valeIngreso,              // Vale generado
+                    MHFECH = dtoSalida.Movimiento.MHFECH,
+                    MHTMOV = "99",                     // ⭐ Tipo 99 = transferencia
+                    MHSITU = "01",                     // ⭐ 01 = REGISTRADO (no pasa por tránsito)
+                    MHHRE1 = dtoSalida.Movimiento.MHALMA, // Almacén origen (referencia)
+                    MHUSER = dtoSalida.Movimiento.MHUSER,
+                    
+                    // ✔ OPCIONALES (recomendados)
+                    MHREF1 = dtoSalida.Movimiento.MHREF1 ?? "",
+                    MHREF2 = dtoSalida.Movimiento.MHREF2 ?? "",
+                    MHREF3 = "TRANSITO",
+                    MHREF4 = dtoSalida.Movimiento.MHREF4 ?? "",
+                    MHREF5 = dtoSalida.Movimiento.MHREF5 ?? "",
+                    MHHRE2 = dtoSalida.Movimiento.MHHRE2 ?? "",
+                    MHHRE3 = dtoSalida.Movimiento.MHHRE3 ?? "",
+                    MHUSEA = dtoSalida.Movimiento.MHUSEA ?? "",
+                    MHUSIN = dtoSalida.Movimiento.MHUSIN ?? "",
+                    MHUSMD = dtoSalida.Movimiento.MHUSMD ?? "",
+                    MHFEIN = int.Parse(DateTime.Now.ToString("yyyyMMdd")),
+                    MHFEMD = int.Parse(DateTime.Now.ToString("yyyyMMdd")),
+                    MHHOIN = int.Parse(DateTime.Now.ToString("HHmmss")),
+                    MHHOMD = int.Parse(DateTime.Now.ToString("HHmmss")),
+                    MHVEHI = dtoSalida.Movimiento.MHVEHI ?? "",
+                    MHCHOF = dtoSalida.Movimiento.MHCHOF ?? "",
+                    MHSITD = "00"
+                };
+
+                // Insertar cabecera de ingreso
+                var ingresoHeader = movimientoIngreso;
+                if (!await repo.InsertTmovh(ingresoHeader))
+                {
+                    Console.WriteLine("❌ Error al insertar TMOVH de ingreso");
+                    return false;
+                }
+
+                // 3. Insertar detalles del INGRESO y actualizar stock directo
+                // ✅ CAMPOS OBLIGATORIOS MÍNIMOS para TMOVD:
+                // - MDALMA (destino), MDEJER, MDPERI, MDCMOV="I", MDCOMP, MDCORR
+                // - MDFECH, MDCOAR (artículo), MDCANA (cantidad), MDSITU="01"
+                int correlativo = 1;
+                foreach (var detalleSalida in dtoSalida.MovimientoDetails)
+                {
+                    var detalleIngreso = new RegistroMovimientoDetail
+                    {
+                        // ✔ OBLIGATORIOS
+                        MDALMA = almacenDestino,           // ⭐ Almacén destino
+                        MDEJER = detalleSalida.MDEJER,
+                        MDPERI = detalleSalida.MDPERI,
+                        MDCMOV = "I",                      // Ingreso
+                        MDCOMP = valeIngreso,
+                        MDCORR = correlativo,
+                        MDFECH = detalleSalida.MDFECH,
+                        MDCOAR = detalleSalida.MDCOAR,    // Artículo
+                        MDCANA = detalleSalida.MDCANA,    // Cantidad
+                        MDSITU = "01",                     // ⭐ Situación 01
+                        MDTMOV = "99",                     // ⭐ Tipo 99 = transferencia
+                        
+                        // ✔ OPCIONALES (copiar de salida)
+                        MDCANR = detalleSalida.MDCANR,
+                        MDUMER = detalleSalida.MDUMER ?? "",
+                        MDCUNA = detalleSalida.MDCUNA,
+                        MDCUNR = detalleSalida.MDCUNR,
+                        MDLOTE = detalleSalida.MDLOTE ?? "",
+                        MDFVTO = detalleSalida.MDFVTO,
+                        MDMONO = detalleSalida.MDMONO,
+                        MDCOMO = detalleSalida.MDCOMO,
+                        MDTCAM = detalleSalida.MDTCAM,
+                        MDTCMO = detalleSalida.MDTCMO,
+                        MDCOST = detalleSalida.MDCOST,
+                        MDACTI = detalleSalida.MDACTI ?? "",
+                        MDCOEP = detalleSalida.MDCOEP,
+                        MDCOSP = detalleSalida.MDCOSP,
+                        MDCUEA = detalleSalida.MDCUEA,
+                        MDCUER = detalleSalida.MDCUER,
+                        MDTOEC = detalleSalida.MDTOEC,
+                        MDTOTC = detalleSalida.MDTOTC,
+                        MDDRE0 = detalleSalida.MDDRE0,
+                        MDDRE1 = detalleSalida.MDDRE1,
+                        MDDRE2 = detalleSalida.MDDRE2,
+                        MDDRE4 = detalleSalida.MDDRE4,
+                        MDDRE5 = detalleSalida.MDDRE5,
+                        MDSITD = "00"
+                    };
+
+                    var detalleIngresoDto = MapRegistroMovimientoDetailToDto(detalleIngreso);
+                    var detalleIngresoEntity = RegistroMovimientosMapper.MovimientoDetailToEntity(detalleIngresoDto);
+                    if (!await repo.InsertTmovd(detalleIngresoEntity))
+                    {
+                        Console.WriteLine($"❌ Error al insertar TMOVD de ingreso para {detalleSalida.MDCOAR}");
+                        return false;
+                    }
+
+                    // ⭐ Actualizar stock DIRECTO (no pasa por tránsito)
+                    await repo.ActualizarStock(
+                        almacenDestino,
+                        detalleSalida.MDCOAR,
+                        detalleSalida.MDCANA,
+                        "I" // Ingreso directo
+                    );
+
+                    correlativo++;
+                }
+
+                // 4. (Eliminado) No existe valorización automática en este sistema.
+
+                // 5. Registrar control en TMOTR (cabecera)
+                await repo.InsertTmotr(
+                    dtoSalida.Movimiento.MHALMA,     // Almacén origen
+                    dtoSalida.Movimiento.MHEJER,
+                    dtoSalida.Movimiento.MHPERI,
+                    dtoSalida.Movimiento.MHCMOV,     // "S"
+                    dtoSalida.Movimiento.MHCOMP,     // Vale salida
+                    0,                                // Correlativo 0 = cabecera
+                    dtoSalida.Movimiento.MHTMOV,
+                    "CAB",
+                    almacenDestino,                   // Almacén destino
+                    "I",
+                    valeIngreso                       // Vale ingreso
+                );
+
+                // 6. Registrar control en TMOTR (detalles)
+                correlativo = 1;
+                foreach (var detalle in dtoSalida.MovimientoDetails)
+                {
+                    await repo.InsertTmotr(
+                        dtoSalida.Movimiento.MHALMA,
+                        dtoSalida.Movimiento.MHEJER,
+                        dtoSalida.Movimiento.MHPERI,
+                        dtoSalida.Movimiento.MHCMOV,
+                        dtoSalida.Movimiento.MHCOMP,
+                        correlativo,
+                        dtoSalida.Movimiento.MHTMOV,
+                        "DET",
+                        almacenDestino,
+                        "I",
+                        valeIngreso
+                    );
+                    correlativo++;
+                }
+
+                Console.WriteLine($"✅ Transferencia completada:");
+                Console.WriteLine($"   Salida: Alm {dtoSalida.Movimiento.MHALMA} - Vale {dtoSalida.Movimiento.MHCOMP}");
+                Console.WriteLine($"   Ingreso: Alm {almacenDestino} - Vale {valeIngreso} (registrado directamente)");
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error en transferencia: {ex.Message}");
+                return false;
+            }
+        }
+
+        private MovimientoDetailDto MapRegistroMovimientoDetailToDto(RegistroMovimientoDetail entity)
+        {
+            return new MovimientoDetailDto
+            {
+                MDACTI = entity.MDACTI,
+                MDALMA = entity.MDALMA,
+                MDCANA = entity.MDCANA,
+                MDCANR = entity.MDCANR,
+                MDCMOV = entity.MDCMOV,
+                MDCOAR = entity.MDCOAR,
+                MDCOEP = entity.MDCOEP,
+                MDCOMO = entity.MDCOMO,
+                MDCOMP = entity.MDCOMP,
+                MDCORR = entity.MDCORR,
+                MDCOSP = entity.MDCOSP,
+                MDCOST = entity.MDCOST,
+                MDCUEA = entity.MDCUEA,
+                MDCUER = entity.MDCUER,
+                MDCUNA = entity.MDCUNA,
+                MDCUNR = entity.MDCUNR,
+                MDDRE0 = entity.MDDRE0,
+                MDDRE1 = entity.MDDRE1,
+                MDDRE2 = entity.MDDRE2,
+                MDDRE4 = entity.MDDRE4,
+                MDDRE5 = entity.MDDRE5,
+                MDEJER = entity.MDEJER,
+                MDFECH = entity.MDFECH,
+                MDFVTO = entity.MDFVTO,
+                MDLOTE = entity.MDLOTE,
+                MDMONO = entity.MDMONO,
+                MDPERI = entity.MDPERI,
+                MDSITD = entity.MDSITD,
+                MDSITU = entity.MDSITU,
+                MDTCAM = entity.MDTCAM,
+                MDTCMO = entity.MDTCMO,
+                MDTMOV = entity.MDTMOV,
+                MDTOEC = entity.MDTOEC,
+                MDTOTC = entity.MDTOTC,
+                MDUMER = entity.MDUMER
+            };
         }
     }
 }

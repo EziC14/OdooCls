@@ -118,6 +118,16 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
+        /// <summary>
+        /// Verifica si el tipo de movimiento es una TRANSFERENCIA (tipo 99)
+        /// Solo el código 99 indica transferencia entre almacenes
+        /// </summary>
+        public bool EsTransferencia(string tipoMovimiento)
+        {
+            // Solo el tipo 99 es transferencia
+            return tipoMovimiento == "99";
+        }
+
         public async Task<int> ObtenerYActualizarCorrelativoPedido(int puntoVenta)
         {
             string querySelect = $@"select PVPEDI from {library}.tptov where PVCODI=?";
@@ -695,36 +705,69 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
+        // Método ActualizarStockTransito eliminado. El stock se actualiza solo en SALACT usando ActualizarStock.
+
         /// <summary>
-        /// Ejecuta el procedimiento SPL0010 que valoriza el movimiento
-        /// Debe llamarse DESPUÉS de insertar todos los detalles
+        /// Registra control de transferencia entre almacenes en TMOTR
+        /// Relaciona el vale de SALIDA con el vale de INGRESO
         /// </summary>
-        public async Task<bool> ValorizarMovimiento(int ejercicio, int periodo, string almacen, string clase, int comprobante)
+        public async Task<bool> InsertTmotr(
+            string almacenOrigen, int ejercicio, int periodo, string claseOrigen, int valeOrigen, int correlativo,
+            string tipoMovimiento, string tipo,
+            string almacenDestino, string claseDestino, int valeDestino)
         {
+            string query = $@"INSERT INTO {library}.TMOTR 
+                (MSALMA, MSEJER, MSPERI, MSCMOV, MSCOMP, MSCORR, MSTMOV, MSTIPO,
+                 MIALMA, MIEJER, MIPERI, MICMOV, MICOMP, MICORR, MITMOV)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            
             try
             {
                 using var cn = new OdbcConnection(connectionString);
-                await cn.OpenAsync();
-
-                if (!CallLibreria(cn))
-                    return false;
-
-                // Construir cadena: AAEEPPPCNNNNNN (Almacen+Ejercicio+Periodo+Clase+Comprobante)
-                string cadenaVale = $"{almacen.PadLeft(2, '0')}{ejercicio}{periodo.ToString().PadLeft(2, '0')}{clase}{comprobante.ToString().PadLeft(6, '0')}";
-                
-                string query = $"CALL {library}.SPL0010 (?)";
                 using var cmd = new OdbcCommand(query, cn);
-                cmd.Parameters.AddWithValue("@cadena", cadenaVale);
+                await cn.OpenAsync();
+                
+                // Movimiento ORIGEN (Salida)
+                cmd.Parameters.AddWithValue("@MSALMA", almacenOrigen);
+                cmd.Parameters.AddWithValue("@MSEJER", ejercicio);
+                cmd.Parameters.AddWithValue("@MSPERI", periodo);
+                cmd.Parameters.AddWithValue("@MSCMOV", claseOrigen);
+                cmd.Parameters.AddWithValue("@MSCOMP", valeOrigen);
+                cmd.Parameters.AddWithValue("@MSCORR", correlativo);
+                cmd.Parameters.AddWithValue("@MSTMOV", tipoMovimiento);
+                cmd.Parameters.AddWithValue("@MSTIPO", tipo); // "CAB" o "DET"
+                
+                // Movimiento DESTINO (Ingreso)
+                cmd.Parameters.AddWithValue("@MIALMA", almacenDestino);
+                cmd.Parameters.AddWithValue("@MIEJER", ejercicio);
+                cmd.Parameters.AddWithValue("@MIPERI", periodo);
+                cmd.Parameters.AddWithValue("@MICMOV", claseDestino);
+                cmd.Parameters.AddWithValue("@MICOMP", valeDestino);
+                cmd.Parameters.AddWithValue("@MICORR", correlativo);
+                cmd.Parameters.AddWithValue("@MITMOV", tipoMovimiento);
                 
                 await cmd.ExecuteNonQueryAsync();
-                Console.WriteLine($"✅ Valorización ejecutada: {cadenaVale}");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error en valorización: {ex.Message}");
+                Console.WriteLine($"Error insertando TMOTR: {ex.Message}");
                 return false;
             }
+        }
+
+        public async Task<bool> ConfirmarRecepcionTransferencia(string almacenDestino, int ejercicio, int periodo, int valeIngreso)
+        {
+            // Implementación vacía para cumplir con la interfaz
+            // Si no se requiere funcionalidad, se puede dejar así:
+            return await Task.FromResult(false);
+        }
+
+        public async Task<bool> ActualizarStockTransito(string almacen, string articulo, decimal cantidad, string operacion)
+        {
+            // Implementación vacía para cumplir con la interfaz
+            // Si no se requiere funcionalidad, se puede dejar así:
+            return await Task.FromResult(false);
         }
     }
 }
