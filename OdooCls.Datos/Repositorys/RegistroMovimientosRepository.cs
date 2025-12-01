@@ -767,5 +767,6 @@ namespace OdooCls.Infrastucture.Repositorys
             // Implementación vacía para cumplir con la interfaz
             // Método no implementado. Lanza excepción para indicar que la funcionalidad no está disponible.
             throw new NotImplementedException("ActualizarStockTransito no está implementado.");
+        }
     }
 }
