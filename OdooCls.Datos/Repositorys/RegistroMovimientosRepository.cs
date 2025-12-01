@@ -758,16 +758,14 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public async Task<bool> ConfirmarRecepcionTransferencia(string almacenDestino, int ejercicio, int periodo, int valeIngreso)
         {
-            // Implementación vacía para cumplir con la interfaz
-            // Si no se requiere funcionalidad, se puede dejar así:
-            return await Task.FromResult(false);
+            // Método no implementado. Lanzar excepción para indicar que la funcionalidad no está disponible.
+            throw new NotImplementedException("ConfirmarRecepcionTransferencia no está implementado.");
         }
 
         public async Task<bool> ActualizarStockTransito(string almacen, string articulo, decimal cantidad, string operacion)
         {
             // Implementación vacía para cumplir con la interfaz
-            // Si no se requiere funcionalidad, se puede dejar así:
-            return await Task.FromResult(false);
-        }
+            // Método no implementado. Lanza excepción para indicar que la funcionalidad no está disponible.
+            throw new NotImplementedException("ActualizarStockTransito no está implementado.");
     }
 }

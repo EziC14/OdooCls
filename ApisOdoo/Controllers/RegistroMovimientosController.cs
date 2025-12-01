@@ -56,7 +56,7 @@ namespace OdooCls.API.Controllers
                 return StatusCode(500, errorResponse);
             }
         }
-        
+
         [HttpGet]
         [Route("health")]
         public IActionResult Health()
@@ -76,7 +76,7 @@ namespace OdooCls.API.Controllers
                 Caracteristicas = new[]
                 {
                     "Actualización automática de stock (TSALM)",
-                    "Valorización automática (SPL0010)",
+
                     "Transferencias entre almacenes con vale en tránsito",
                     "Control de transferencias (TMOTR)"
                 },

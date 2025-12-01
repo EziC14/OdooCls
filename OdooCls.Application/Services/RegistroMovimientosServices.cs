@@ -96,6 +96,11 @@ namespace OdooCls.Application.Services
                 bool esTransferencia = repo.EsTransferencia(dto.Movimiento.MHTMOV);
                 string almacenDestino = dto.Movimiento.MHHRE1; // El almacén destino se envía en MHHRE1
 
+                // Validar almacén destino para transferencias
+                if (esTransferencia && string.IsNullOrEmpty(almacenDestino))
+                {
+                    return new ApiResponse<RegistroMovimientosDto>(400, 6005, "El almacén destino (MHHRE1) es requerido para transferencias.");
+                }
                 // 2a. INSERT TMOVD (Detalles Movimiento) Y ACTUALIZAR STOCK - SIEMPRE
                 foreach (var detalle in dto.MovimientoDetails)
                 {
@@ -515,9 +520,7 @@ namespace OdooCls.Application.Services
                         MDDRE0 = detalleSalida.MDDRE0,
                         MDDRE1 = detalleSalida.MDDRE1,
                         MDDRE2 = detalleSalida.MDDRE2,
-                        MDDRE4 = detalleSalida.MDDRE4,
-                        MDDRE5 = detalleSalida.MDDRE5,
-                        MDSITD = "00"
+                    if (!await repo.InsertTmovd(detalleIngreso))
                     };
 
                     var detalleIngresoDto = MapRegistroMovimientoDetailToDto(detalleIngreso);
