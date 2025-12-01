@@ -520,12 +520,9 @@ namespace OdooCls.Application.Services
                         MDDRE0 = detalleSalida.MDDRE0,
                         MDDRE1 = detalleSalida.MDDRE1,
                         MDDRE2 = detalleSalida.MDDRE2,
-                    if (!await repo.InsertTmovd(detalleIngreso))
                     };
 
-                    var detalleIngresoDto = MapRegistroMovimientoDetailToDto(detalleIngreso);
-                    var detalleIngresoEntity = RegistroMovimientosMapper.MovimientoDetailToEntity(detalleIngresoDto);
-                    if (!await repo.InsertTmovd(detalleIngresoEntity))
+                    if (!await repo.InsertTmovd(detalleIngreso))
                     {
                         Console.WriteLine($"❌ Error al insertar TMOVD de ingreso para {detalleSalida.MDCOAR}");
                         return false;
