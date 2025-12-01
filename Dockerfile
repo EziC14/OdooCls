@@ -11,11 +11,15 @@ RUN dotnet publish -c Release -o /app/publish
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
-# ⭐ INSTALAR unixODBC directamente en la etapa final ⭐
 RUN apt-get update && apt-get install -y \
     unixodbc \
     unixodbc-dev \
+    curl \
+    wget \
     && rm -rf /var/lib/apt/lists/*
+
+COPY odbc.ini /etc/odbc.ini
+COPY odbcinst.ini /etc/odbcinst.ini
 
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "OdooCls.API.dll"]
