@@ -6,15 +6,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: odoocls-api-prod
+    network_mode: host
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__ERPConexion=DSN=CLS-PROD;UID=ODOO;PWD=ODOO;
       - Authentication__Library=speed400cs
       - Authentication__ApiKey=n/KbzsjflJp/wJI+t17W6pqm2cYQMpQe9LZbjWwD5S3zEYkM0zUf3tFsLmScpZG1le6gVsqDA3Qy8VFBdO4aAQ
-    ports:
-      - "8095:80"
-    networks:
-      - odoocls-network
     restart: unless-stopped
     
   api-dev:
@@ -22,15 +19,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: odoocls-api-dev
+    network_mode: host
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__ERPConexion=DSN=CLS-DEV;UID=ODOO;PWD=ODOO;
       - Authentication__Library=speed400xx
       - Authentication__ApiKey=n/KbzsjflJp/wJI+t17W6pqm2cYQMpQe9LZbjWwD5S3zEYkM0zUf3tFsLmScpZG1le6gVsqDA3Qy8VFBdO4aAQ
-    ports:
-      - "8081:80"
-    networks:
-      - odoocls-network
     restart: unless-stopped
 
 networks:
