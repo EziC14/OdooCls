@@ -9,6 +9,7 @@ services:
     network_mode: host
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_PORT=8095
       - ConnectionStrings__ERPConexion=DSN=CLS-PROD;UID=ODOO;PWD=ODOO;
       - Authentication__Library=speed400cs
       - Authentication__ApiKey=n/KbzsjflJp/wJI+t17W6pqm2cYQMpQe9LZbjWwD5S3zEYkM0zUf3tFsLmScpZG1le6gVsqDA3Qy8VFBdO4aAQ
@@ -22,6 +23,7 @@ services:
     network_mode: host
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_PORT=8081
       - ConnectionStrings__ERPConexion=DSN=CLS-DEV;UID=ODOO;PWD=ODOO;
       - Authentication__Library=speed400xx
       - Authentication__ApiKey=n/KbzsjflJp/wJI+t17W6pqm2cYQMpQe9LZbjWwD5S3zEYkM0zUf3tFsLmScpZG1le6gVsqDA3Qy8VFBdO4aAQ

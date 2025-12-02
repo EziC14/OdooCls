@@ -57,6 +57,10 @@ builder.Services.AddSwaggerGen(options =>
 });
 var app = builder.Build();
 
+// Configurar puerto dinámicamente
+var port = Environment.GetEnvironmentVariable("ASPNETCORE_PORT") ?? "8095";
+app.Urls.Add($"http://0.0.0.0:{port}");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
