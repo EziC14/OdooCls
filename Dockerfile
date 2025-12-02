@@ -19,6 +19,8 @@ RUN apt-get update && apt-get install -y \
     tdsodbc \
     curl \
     wget \
+    iputils-ping \
+    net-tools \
     && rm -rf /var/lib/apt/lists/*
 
 COPY odbc.ini /etc/odbc.ini
