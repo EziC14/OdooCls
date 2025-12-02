@@ -38,13 +38,8 @@ RUN cd /opt/ibm/iaccess/lib64 && \
     ln -sf libcwbodbc.so libcwbodbc.so.1 2>/dev/null || true && \
     ln -sf libcwbodbcs.so libcwbodbcs.so.1 2>/dev/null || true
 
-# Copiar configuración ODBC
-COPY odbc.ini /etc/odbc.ini
-COPY odbcinst.ini /etc/odbcinst.ini
-
-# Configurar permisos y LD_LIBRARY_PATH
-RUN chmod 644 /etc/odbc.ini /etc/odbcinst.ini && \
-    chmod 755 /opt/ibm/iaccess/lib64/*.so && \
+# Configurar librerías (NOTA: odbc.ini se montará como volumen desde el host)
+RUN chmod 755 /opt/ibm/iaccess/lib64/*.so && \
     echo "/opt/ibm/iaccess/lib64" > /etc/ld.so.conf.d/ibm-iaccess.conf && \
     ldconfig
 

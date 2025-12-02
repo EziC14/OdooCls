@@ -10,9 +10,13 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_PORT=8095
-      - ConnectionStrings__ERPConexion=DSN=CLS-PROD;UID=ODOO;PWD=ODOO;
+      - ConnectionStrings__ERPConexion=DSN=CLS;UID=ODOO;PWD=ODOO;
       - Authentication__Library=SPEED400CS
       - Authentication__ApiKey=n/KbzsjflJp/wJI+t17W6pqm2cYQMpQe9LZbjWwD5S3zEYkM0zUf3tFsLmScpZG1le6gVsqDA3Qy8VFBdO4aAQ
+    volumes:
+      - /etc/odbc.ini:/etc/odbc.ini:ro
+      - /etc/odbcinst.ini:/etc/odbcinst.ini:ro
+      - /opt/ibm:/opt/ibm:ro
     restart: unless-stopped
     
   api-dev:
@@ -24,11 +28,11 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_PORT=8081
-      - ConnectionStrings__ERPConexion=DSN=CLS-DEV;UID=ODOO;PWD=ODOO;
+      - ConnectionStrings__ERPConexion=DSN=CLS;UID=ODOO;PWD=ODOO;
       - Authentication__Library=SPEED400XX
       - Authentication__ApiKey=n/KbzsjflJp/wJI+t17W6pqm2cYQMpQe9LZbjWwD5S3zEYkM0zUf3tFsLmScpZG1le6gVsqDA3Qy8VFBdO4aAQ
+    volumes:
+      - /etc/odbc.ini:/etc/odbc.ini:ro
+      - /etc/odbcinst.ini:/etc/odbcinst.ini:ro
+      - /opt/ibm:/opt/ibm:ro
     restart: unless-stopped
-
-networks:
-  odoocls-network:
-    driver: bridge
