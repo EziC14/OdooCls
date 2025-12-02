@@ -6,8 +6,27 @@
 echo "Copiando drivers IBM iSeries Access ODBC..."
 
 # Crear directorio si no existe
-mkdir -p ibm-iaccess-libs || sudo mkdir -p ibm-iaccess-libs
-
+if [ ! -d "ibm-iaccess-libs" ]; then
+    mkdir -p ibm-iaccess-libs 2>/dev/null
+    status=$?
+LIBS=("libcwbcore.so" "libcwbodbc.so" "libcwbodbcs.so")
+for lib in "${LIBS[@]}"; do
+    sudo cp "/opt/ibm/iaccess/lib64/$lib" ibm-iaccess-libs/ 2>/dev/null || echo "Warning: $lib no encontrado"
+done
+            sudo mkdir -p ibm-iaccess-libs
+            status=$?
+if ! sudo chmod 644 ibm-iaccess-libs/*.so; then
+    echo "Error: No se pudieron cambiar los permisos de las bibliotecas IBM iSeries Access ODBC" >&2
+fi
+                echo "Error: No se pudo crear el directorio ibm-iaccess-libs incluso con sudo." >&2
+                exit 1
+            fi
+        else
+            echo "Error: No se pudo crear el directorio ibm-iaccess-libs." >&2
+            exit 1
+        fi
+    fi
+fi
 # Copiar bibliotecas compartidas necesarias
 sudo cp /opt/ibm/iaccess/lib64/libcwbcore.so ibm-iaccess-libs/ 2>/dev/null || echo "Warning: libcwbcore.so no encontrado"
 sudo cp /opt/ibm/iaccess/lib64/libcwbodbc.so ibm-iaccess-libs/ 2>/dev/null || echo "Warning: libcwbodbc.so no encontrado"
