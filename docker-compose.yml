@@ -8,11 +8,11 @@ services:
     container_name: odoocls-api-prod
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__ERPConexion=DSN=CLS;UID=ODOO;PWD=ODOO;
+      - ConnectionStrings__ERPConexion=DSN=CLS-PROD;UID=ODOO;PWD=ODOO;
       - Authentication__Library=speed400cs
       - Authentication__ApiKey=n/KbzsjflJp/wJI+t17W6pqm2cYQMpQe9LZbjWwD5S3zEYkM0zUf3tFsLmScpZG1le6gVsqDA3Qy8VFBdO4aAQ
     ports:
-      - "8095:8080"
+      - "8095:80"
     networks:
       - odoocls-network
     restart: unless-stopped
@@ -24,11 +24,11 @@ services:
     container_name: odoocls-api-dev
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__ERPConexion=DSN=CLS;UID=ODOO;PWD=ODOO;
+      - ConnectionStrings__ERPConexion=DSN=CLS-DEV;UID=ODOO;PWD=ODOO;
       - Authentication__Library=speed400xx
       - Authentication__ApiKey=n/KbzsjflJp/wJI+t17W6pqm2cYQMpQe9LZbjWwD5S3zEYkM0zUf3tFsLmScpZG1le6gVsqDA3Qy8VFBdO4aAQ
     ports:
-      - "8081:8080"
+      - "8081:80"
     networks:
       - odoocls-network
     restart: unless-stopped

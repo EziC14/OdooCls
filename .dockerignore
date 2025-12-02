@@ -1,0 +1,53 @@
+# Archivos a ignorar en la construcción de imagen Docker
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vs
+.vscode
+*.sln
+*.user
+*.suo
+*.DotSettings
+
+# Compilación local
+bin/
+obj/
+dist/
+*.o
+*.exe
+
+# Documentación (opcional, comentar si quieres incluirla)
+*.md
+docs/
+
+# Dependencias
+node_modules/
+.npm
+
+# Archivos temporales
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Configuración local
+appsettings.Local.json
+.env.local
+
+# Otros
+.editorconfig
+.npmrc
