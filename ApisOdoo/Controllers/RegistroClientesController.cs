@@ -37,6 +37,22 @@ namespace OdooCls.API.Controllers
                 if (token != VALID_TOKEN)
                     return Unauthorized(new { message = "Token no válido" });
 
+                // Validación lógica de documento
+                if (dto.CLTIDE == "RU")
+                {
+                    if (string.IsNullOrWhiteSpace(dto.CLIRUC))
+                        return BadRequest(new { message = "Si CLTIDE es 'RU', CLIRUC es obligatorio" });
+                    if (!string.IsNullOrWhiteSpace(dto.CLNIDE))
+                        return BadRequest(new { message = "Si CLTIDE es 'RU', CLNIDE debe estar vacío" });
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(dto.CLNIDE))
+                        return BadRequest(new { message = "Si CLTIDE no es 'RU', CLNIDE es obligatorio" });
+                    if (!string.IsNullOrWhiteSpace(dto.CLIRUC))
+                        return BadRequest(new { message = "Si CLTIDE no es 'RU', CLIRUC debe estar vacío" });
+                }
+
                 var response = await svc.CreateAsync(dto);
                 if (response.HttpStatusCode == 200)
                     return Ok(response);
@@ -62,6 +78,22 @@ namespace OdooCls.API.Controllers
                 var token = authHeader.Substring("Bearer ".Length).Trim();
                 if (token != VALID_TOKEN)
                     return Unauthorized(new { message = "Token no válido" });
+
+                // Validación lógica de documento
+                if (dto.CLTIDE == "RU")
+                {
+                    if (string.IsNullOrWhiteSpace(dto.CLIRUC))
+                        return BadRequest(new { message = "Si CLTIDE es 'RU', CLIRUC es obligatorio" });
+                    if (!string.IsNullOrWhiteSpace(dto.CLNIDE))
+                        return BadRequest(new { message = "Si CLTIDE es 'RU', CLNIDE debe estar vacío" });
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(dto.CLNIDE))
+                        return BadRequest(new { message = "Si CLTIDE no es 'RU', CLNIDE es obligatorio" });
+                    if (!string.IsNullOrWhiteSpace(dto.CLIRUC))
+                        return BadRequest(new { message = "Si CLTIDE no es 'RU', CLIRUC debe estar vacío" });
+                }
 
                 var response = await svc.UpdateAsync(dto);
                 if (response.HttpStatusCode == 200)

@@ -13,6 +13,13 @@ namespace OdooCls.Application.Dtos
         [StringLength(40)]
         public string CLINOM { get; set; } = string.Empty; // Nombre de cliente
 
+            [Required]
+            [StringLength(2)]
+            [RegularExpression("^(CE|DN|OD|PS|RU)$", ErrorMessage = "CLTIDE solo permite CE, DN, OD, PS o RU")]
+            public string CLTIDE { get; set; } = string.Empty; // Tipo de documento
+
+            [StringLength(20)]
+            public string CLNIDE { get; set; } = string.Empty; // Número de documento (si no es RU)
         [StringLength(40)]
         public string CLIDIR { get; set; } = string.Empty; // Dirección cliente
 
