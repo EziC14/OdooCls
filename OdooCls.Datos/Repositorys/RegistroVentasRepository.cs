@@ -302,7 +302,7 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> ValidarExistenciaDocumento(int ejercicio, int mes, string Tipodoc, string nrodoc) 
         {
             bool rp = false;
-            var Query = $"select * from {library}.tregv where RVEJER={ejercicio} and RVPERI={mes} and RVTDOC='{Tipodoc}' AND RVNDOC='{nrodoc}'";
+            var Query = $"select count(*) from {library}.tregv where RVEJER={ejercicio} and RVPERI={mes} and RVTDOC='{Tipodoc}' AND RVNDOC='{nrodoc}'";
 
             using (var connection = new OdbcConnection(connectionString))
             {
@@ -385,7 +385,7 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> ValidatTipoDoc(string tipo)
         {
             bool rp=false;
-            string Query = @$"select * from {library}.ttido where tdregi='V' AND TDTIPO='{tipo}'";
+            string Query = @$"select count(*) from {library}.ttido where tdregi='V' AND TDTIPO='{tipo}'";
 
             using (var connection = new OdbcConnection(connectionString))
             {

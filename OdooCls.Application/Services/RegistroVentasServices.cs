@@ -63,7 +63,7 @@ namespace OdooCls.Application.Services
 
                 //Validar Existencia del documento en el Registro de ventas
                 Valida = await Registro.ValidarExistenciaDocumento(ejercicio, mes, td, tn);
-                if (Valida == false){
+                if (Valida == true){
                     return new ApiResponse<RegistroVentasDto>(400, 1005, $"Documento ya existe en el Registro de Ventas");
                 }
 
@@ -73,7 +73,7 @@ namespace OdooCls.Application.Services
                     return new ApiResponse<RegistroVentasDto>(400, 1006, $"La Moneda ingresa no existe");
                 }
 
-                Valida = await Registro.ValidaCliente(rvdto.RVCLIE);
+                Valida = await Registro.ValidaCliente(rvdto.RVCCLI);
                 if (Valida == false)
                 {
                     return new ApiResponse<RegistroVentasDto>(400, 1007, $"Cliente no existe");
