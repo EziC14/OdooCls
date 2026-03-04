@@ -173,7 +173,11 @@ namespace OdooCls.Infrastucture.Repositorys
                         cn.Close();
                         foreach (var item in registroVentas.RegistroVentasDetail)
                         {
-                         await InsertTregvD(item);
+                            var detailOk = await InsertTregvD(item);
+                            if (!detailOk)
+                            {
+                                return false;
+                            }
                         }
                     }
                 }
@@ -192,7 +196,7 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> InsertTregvD(RegistroVentasDetail registro)
         {
             bool rp = false;
-            string Query = $@"Insert into {library}.tregv
+            string Query = $@"Insert into {library}.tregvd
                            RVEJER, RVPERI, RVTDOC, RVNDOC, RVSECU, RVDCTA, RVDCCO,         
                            RVDIMP, RVDACT, RVDTGA, RDTIAX, RDCOAX, RDRFAX, RDRFA1, RDRFA2, 
                            RDRFA3, RDRFA4, RDRFA5 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ";

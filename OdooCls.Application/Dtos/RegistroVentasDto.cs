@@ -50,6 +50,8 @@ namespace OdooCls.Application.Dtos
         public int RVHPRO { get; set; } = 0;
         public int RVFEVE { get; set; } = 0;
         public string RVNDOM { get; set; } = "";
+        [Required(ErrorMessage = "RVCPAG es obligatorio")]
+        [StringLength(3, MinimumLength = 3, ErrorMessage = "RVCPAG debe tener exactamente 3 caracteres")]
         public string RVCPAG { get; set; } = "";
         public string RVRUC { get; set; } = "";
     [StringLength(2)]

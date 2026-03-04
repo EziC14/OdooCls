@@ -79,6 +79,13 @@ namespace OdooCls.Application.Services
                     return new ApiResponse<RegistroVentasDto>(400, 1007, $"Cliente no existe");
                 }
 
+                if (string.IsNullOrWhiteSpace(rvdto.RVCPAG) || rvdto.RVCPAG.Trim().Length != 3)
+                {
+                    return new ApiResponse<RegistroVentasDto>(400, 1008, "RVCPAG es obligatorio (condición de pago) y debe tener exactamente 3 caracteres");
+                }
+
+                rvdto.RVCPAG = rvdto.RVCPAG.Trim();
+
 
              
 
