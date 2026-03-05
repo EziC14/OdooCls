@@ -185,9 +185,7 @@ namespace OdooCls.Infrastucture.Repositorys
             }
             catch (Exception ex)
             {
-                // Log de error si es necesario
-                Console.WriteLine($"Error: {ex.Message}");
-                rp = false;  // Si hay un error, retornamos false
+                throw new Exception($"Error al insertar cabecera TREGV: {ex.Message}", ex);
             }
 
             return rp;  
@@ -241,10 +239,7 @@ namespace OdooCls.Infrastucture.Repositorys
             }
             catch (Exception ex)
             {
-
-                // Log de error si es necesario
-                Console.WriteLine($"Error: {ex.Message}");
-                rp = false;  // Si hay un error, retornamos false
+                throw new Exception($"Error al insertar detalle TREGVD: {ex.Message}", ex);
             }
             return rp;
         }
