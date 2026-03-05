@@ -82,11 +82,11 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> InsertTregv(RegistroVentas registroVentas)
         {
             bool rp = false;
-            string Query = $@"insert into {library}.tregv
+            string Query = $@"insert into {library}.tregv (
                            RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVCCLI, RVCLIE,  RVMONE, RVTCAM, RVVALV, RVCVAL, RVMVAL, RVVALI, RVCVAI, RVMVAI, RVDSCT, RVCDSC, RVMDSC, RVIGV, RVCIGV, RVMIGV, RVIMP2, RVCIM2,  
                            RVMIM2, RVIMP3, RVCIM3, RVMIM3, RVRET1, RVCRE1, RVMRE1, RVRET2, RVCRE2, RVMRE2, RVPVTA, RVCPVT, RVMPVT, RVCONC, RVTREF, RVNREF, RVASTO, RVGRAB, RVFPRO, RVHPRO, RVFEVE, RVNDOM, RVCPAG,
                            RVRUC,RVSITU, RVCOST, RVCVEN, RVCCOB, RVACTI, RVTGAS, RVBANC, RVNBCO, RVUSIN, RVFEIN, RVHOIN, RVUSMD, RVFEMD, RVHOMD, RVREF1, RVREF2, RVREF3, RVREF4, RVREF5, RVHASH, RVSUNA, RVGLOS       
-                           values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ";
+                           ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ";
 
             try
             {
@@ -194,10 +194,10 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> InsertTregvD(RegistroVentasDetail registro)
         {
             bool rp = false;
-            string Query = $@"Insert into {library}.tregvd
+            string Query = $@"Insert into {library}.tregvd (
                            RVEJER, RVPERI, RVTDOC, RVNDOC, RVSECU, RVDCTA, RVDCCO,         
                            RVDIMP, RVDACT, RVDTGA, RDTIAX, RDCOAX, RDRFAX, RDRFA1, RDRFA2, 
-                           RDRFA3, RDRFA4, RDRFA5 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ";
+                           RDRFA3, RDRFA4, RDRFA5) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ";
             try
             {
                    using OdbcConnection cn = new OdbcConnection(connectionString);
