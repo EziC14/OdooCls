@@ -45,38 +45,37 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public async Task<bool> InsertCtxC(int ejercicio, int mes, string Tipodoc, string nrodoc)
         {
-            bool rp = false;
+            string query = $@"INSERT INTO {library}.TCTXC
+            SELECT RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVFEVE, RVCCLI, RVMONE, RVTCAM, RVCPAG, RVPVTA, 0, RVPVTA, '02',
+                   CASE WHEN RVMONE = 0 THEN RVPVTA ELSE ROUND((RVPVTA * RVTCAM), 2) END, 0, RVTCAM,
+                   CASE WHEN RVMONE = 0 THEN ROUND((RVPVTA / RVTCAM), 2) ELSE RVPVTA END, 0, '', '', '',
+                   RVCCOB, RVCVEN, '', '', '', '', '', '', RVACTI, RVTGAS, RVCPVT, RVCOST, '', '', '', 0, 0
+            FROM {library}.TREGV
+            WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
 
-            string query = $@" INSERT INTO   {library}.TCTXC 
-            SELECT RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVFEVE, RVCCLI, RVMONE, RVTCAM, RVCPAG, RVPVTA, 0 ,RVPVTA , '02',
-            CASE WHEN RVMONE =0 THEN RVPVTA ELSE round((RVPVTA*RVTCAM), 2) END, 0 ,RVTCAM,
-            CASE WHEN RVMONE =0 THEN round((RVPVTA/RVTCAM), 2)  ELSE RVPVTA END, 0 , '', '', '',
-            RVCCOB, RVCVEN, '', '', '', '', '', '',RVACTI,RVTGAS,RVCPVT,RVCOST,'','','', 0 , 0 
-            FROM  {library}.TREGV WHERE   rvejer={ejercicio} and rvperi={mes} AND RVTDOC='{Tipodoc}' AND RVNDOC IN ('{nrodoc}')";
             try
             {
                 using OdbcConnection cn = new OdbcConnection(connectionString);
-                {
-                    using OdbcCommand cmd = new OdbcCommand(query, cn);
-                    {
-                      await  cn.OpenAsync();
-                      
-                      if (!CallLibreria(cn))
-                          return false;
-                      
-                        cmd.CommandType = CommandType.Text;
-                      await  cmd.ExecuteNonQueryAsync();
-                        cn.Close();
-                    }
-                }
-                rp = true;
+                using OdbcCommand cmd = new OdbcCommand(query, cn);
+
+                await cn.OpenAsync();
+
+                if (!CallLibreria(cn))
+                    return false;
+
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@RVEJER", ejercicio);
+                cmd.Parameters.AddWithValue("@RVPERI", mes);
+                cmd.Parameters.AddWithValue("@RVTDOC", Tipodoc);
+                cmd.Parameters.AddWithValue("@RVNDOC", nrodoc);
+
+                var rowsAffected = await cmd.ExecuteNonQueryAsync();
+                return rowsAffected > 0;
             }
             catch (Exception ex)
-            {// Log de error si es necesario
-                Console.WriteLine($"Error: {ex.Message}");
-                rp = false;
+            {
+                throw new Exception($"Error al insertar TCTXC: {ex.Message}", ex);
             }
-           return rp;
         }
 
         public async Task<bool> InsertTregv(RegistroVentas registroVentas)

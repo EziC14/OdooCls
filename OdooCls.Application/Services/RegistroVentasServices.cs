@@ -93,7 +93,11 @@ namespace OdooCls.Application.Services
                 Itregv = await Registro.InsertTregv(ventas);
                 if (Itregv == true)
                 {
-                    await Registro.InsertCtxC(ejercicio, mes, td, tn);
+                    var itctxc = await Registro.InsertCtxC(ejercicio, mes, td, tn);
+                    if (!itctxc)
+                    {
+                        return new ApiResponse<RegistroVentasDto>(400, 1010, "La venta se registró, pero no se pudo generar el registro en TCTXC");
+                    }
                     return new ApiResponse<RegistroVentasDto>(200, 1000, $"Documento registrado en el Registro de Ventas");
                 }
                 else
