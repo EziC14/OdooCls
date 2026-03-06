@@ -179,7 +179,13 @@ namespace OdooCls.Infrastucture.Repositorys
                 }
                 catch (Exception)
                 {
-                    await CleanupPartialSalesInserts(cn, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
+                    try
+                    {
+                        await CleanupPartialSalesInserts(cn, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
+                    }
+                    catch
+                    {
+                    }
                     throw;
                 }
             }
@@ -243,11 +249,10 @@ namespace OdooCls.Infrastucture.Repositorys
 
         private async Task CleanupPartialSalesInserts(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc)
         {
-            string deleteTctxc = $@"DELETE FROM {library}.TCTXC WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
             string deleteTregvd = $@"DELETE FROM {library}.TREGVD WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
             string deleteTregv = $@"DELETE FROM {library}.TREGV WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
 
-            foreach (var query in new[] { deleteTctxc, deleteTregvd, deleteTregv })
+            foreach (var query in new[] { deleteTregvd, deleteTregv })
             {
                 using OdbcCommand cmd = new OdbcCommand(query, cn);
                 cmd.CommandType = CommandType.Text;
