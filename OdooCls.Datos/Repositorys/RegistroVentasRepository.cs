@@ -94,10 +94,9 @@ namespace OdooCls.Infrastucture.Repositorys
                 if (!CallLibreria(cn))
                     return false;
 
-                using var tx = cn.BeginTransaction();
                 try
                 {
-                    using OdbcCommand cmd = new OdbcCommand(Query, cn, tx);
+                    using OdbcCommand cmd = new OdbcCommand(Query, cn);
                     cmd.CommandType = CommandType.Text;
                     cmd.Parameters.AddWithValue("@RVEJER", registroVentas.RVEJER);
                     cmd.Parameters.AddWithValue("@RVPERI", registroVentas.RVPERI);
@@ -168,21 +167,19 @@ namespace OdooCls.Infrastucture.Repositorys
                     cmd.Parameters.AddWithValue("@RVHASH", registroVentas.RVHASH);
                     cmd.Parameters.AddWithValue("@RVSUNA", registroVentas.RVSUNA);
                     cmd.Parameters.AddWithValue("@RVGLOS", registroVentas.RVGLOS);
-                    cmd.ExecuteNonQuery();
+                    await cmd.ExecuteNonQueryAsync();
 
                     foreach (var item in registroVentas.RegistroVentasDetail)
                     {
-                        await InsertTregvDInTransaction(cn, tx, item);
+                        await InsertTregvDInConnection(cn, item);
                     }
 
-                    await InsertCtxCInTransaction(cn, tx, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
-
-                    tx.Commit();
+                    await InsertCtxCInConnection(cn, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
                     return true;
                 }
-                catch
+                catch (Exception)
                 {
-                    tx.Rollback();
+                    await CleanupPartialSalesInserts(cn, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
                     throw;
                 }
             }
@@ -192,14 +189,14 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
-        private async Task InsertTregvDInTransaction(OdbcConnection cn, OdbcTransaction tx, RegistroVentasDetail registro)
+        private async Task InsertTregvDInConnection(OdbcConnection cn, RegistroVentasDetail registro)
         {
             string query = $@"Insert into {library}.tregvd (
                            RVEJER, RVPERI, RVTDOC, RVNDOC, RVSECU, RVDCTA, RVDCCO,
                            RVDIMP, RVDACT, RVDTGA, RDTIAX, RDCOAX, RDRFAX, RDRFA1, RDRFA2,
                            RDRFA3, RDRFA4, RDRFA5) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ";
 
-            using OdbcCommand cmd = new OdbcCommand(query, cn, tx);
+            using OdbcCommand cmd = new OdbcCommand(query, cn);
             cmd.CommandType = CommandType.Text;
             cmd.Parameters.AddWithValue("@RVEJER", registro.RVEJER);
             cmd.Parameters.AddWithValue("@RVPERI", registro.RVPERI);
@@ -222,7 +219,7 @@ namespace OdooCls.Infrastucture.Repositorys
             await cmd.ExecuteNonQueryAsync();
         }
 
-        private async Task InsertCtxCInTransaction(OdbcConnection cn, OdbcTransaction tx, int ejercicio, int mes, string tipodoc, string nrodoc)
+        private async Task InsertCtxCInConnection(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc)
         {
             string query = $@"INSERT INTO {library}.TCTXC
             SELECT RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVFEVE, RVCCLI, RVMONE, RVTCAM, RVCPAG, RVPVTA, 0, RVPVTA, '02',
@@ -232,7 +229,7 @@ namespace OdooCls.Infrastucture.Repositorys
             FROM {library}.TREGV
             WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
 
-            using OdbcCommand cmd = new OdbcCommand(query, cn, tx);
+            using OdbcCommand cmd = new OdbcCommand(query, cn);
             cmd.CommandType = CommandType.Text;
             cmd.Parameters.AddWithValue("@RVEJER", ejercicio);
             cmd.Parameters.AddWithValue("@RVPERI", mes);
@@ -242,6 +239,24 @@ namespace OdooCls.Infrastucture.Repositorys
             var rowsAffected = await cmd.ExecuteNonQueryAsync();
             if (rowsAffected <= 0)
                 throw new Exception("No se insertaron filas en TCTXC");
+        }
+
+        private async Task CleanupPartialSalesInserts(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc)
+        {
+            string deleteTctxc = $@"DELETE FROM {library}.TCTXC WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
+            string deleteTregvd = $@"DELETE FROM {library}.TREGVD WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
+            string deleteTregv = $@"DELETE FROM {library}.TREGV WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
+
+            foreach (var query in new[] { deleteTctxc, deleteTregvd, deleteTregv })
+            {
+                using OdbcCommand cmd = new OdbcCommand(query, cn);
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@RVEJER", ejercicio);
+                cmd.Parameters.AddWithValue("@RVPERI", mes);
+                cmd.Parameters.AddWithValue("@RVTDOC", tipodoc);
+                cmd.Parameters.AddWithValue("@RVNDOC", nrodoc);
+                await cmd.ExecuteNonQueryAsync();
+            }
         }
 
         public async Task<bool> InsertTregvD(RegistroVentasDetail registro)
