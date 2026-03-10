@@ -82,11 +82,11 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> InsertTregc(RegistroCompras registro)
         {
             bool rp = false;
-            string Query = $@"insert into {library}.tregc 
+            string Query = $@"insert into {library}.tregc (
             RCEJER,RCPERI,RCTDOC,RCNDOC,RCFECH,RCRCXP,RCCPRO,RCPROV,RCRUC,RCARTI,RCMONE,RCTCAM,RCVALV,RCCVAL,RCMVAL,RCVALI,
             RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
             RCFEVE,RCNDOM,RCCPAG,RCSITU,RCUSIN,RCFEIN,RCHOIN,RCRVVA,RCREF7,RCCBSA
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             try
             {
                 using OdbcConnection cn = new OdbcConnection(connectionString);
@@ -141,13 +141,15 @@ namespace OdooCls.Infrastucture.Repositorys
                         cmd.Parameters.AddWithValue("@RCRVVA", registro.RCRVVA);
                         cmd.Parameters.AddWithValue("@RCREF7", registro.RCREF7);
                         cmd.Parameters.AddWithValue("@RCCBSA", registro.RCCBSA);
+
+                        var rowsAffected = await cmd.ExecuteNonQueryAsync();
+                        rp = rowsAffected > 0;
                      }
                 }
-                rp = true;
             }
             catch (Exception ex)
             {
-
+                Console.WriteLine($"Error InsertTregc: {ex.Message}");
                 rp = false;
             }
 

@@ -58,10 +58,15 @@ namespace OdooCls.Application.Services
                 {
                     return new ApiResponse<RegistroComprasDto>(400, 1006, $"La Moneda ingresa no existe");
                 }
-                Valida = await Registro.ValidaProveedor(rcdto.RCPROV);
+                if (string.IsNullOrWhiteSpace(rcdto.RCCPRO))
+                {
+                    return new ApiResponse<RegistroComprasDto>(400, 1007, "RCCPRO es obligatorio (código de proveedor)");
+                }
+
+                Valida = await Registro.ValidaProveedor(rcdto.RCCPRO);
                 if (Valida == false)
                 {
-                    return new ApiResponse<RegistroComprasDto>(400, 1007, $"La Moneda ingresa no existe");
+                    return new ApiResponse<RegistroComprasDto>(400, 1007, $"Proveedor no existe");
                 }
                 var peri = DateTime.Now.ToString("yyyyMM");
                 var anio = DateTime.Now.Year;
