@@ -84,6 +84,9 @@ namespace OdooCls.Application.Services
                     case 12:
                         rcxp = anio.ToString() + "C" + correla.ToString("D5");
                         break;
+                    default:
+                        rcxp = anio.ToString() + meses.ToString() + correla.ToString("D5");
+                        break;
                 }
                 
                 rcdto.RCRCXP = rcxp;
