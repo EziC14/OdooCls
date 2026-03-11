@@ -71,7 +71,15 @@ namespace OdooCls.Application.Services
                 var peri = DateTime.Now.ToString("yyyyMM");
                 var anio = DateTime.Now.Year;
                 var meses = DateTime.Now.Month;
-                var correla= Registro.GetNextCorr(peri);
+                int correla;
+                try
+                {
+                    correla = Registro.GetNextCorr(peri);
+                }
+                catch (Exception exCorr)
+                {
+                    return new ApiResponse<RegistroComprasDto>(500, 500, $"Fallo en GetNextCorr (periodo={peri}): {exCorr.Message}");
+                }
                 string rcxp = "";
                 switch (meses)
                 {
@@ -91,8 +99,14 @@ namespace OdooCls.Application.Services
                 
                 rcdto.RCRCXP = rcxp;
                 RegistroCompras compras = RegistroComprasMapper.DtoToEntity(rcdto);
-                
-                Itregc= await Registro.InsertTregc(compras);
+                try
+                {
+                    Itregc = await Registro.InsertTregc(compras);
+                }
+                catch (Exception exIns)
+                {
+                    return new ApiResponse<RegistroComprasDto>(500, 500, $"Fallo en InsertTregc: {exIns.Message}");
+                }
                 if (Itregc == true)
                 {
 

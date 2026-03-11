@@ -26,6 +26,12 @@ namespace OdooCls.Infrastucture.Repositorys
             connectionString = this.configuration["ConnectionStrings:ERPConexion"];
         }
 
+        private static string Trunc(string? value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            return value.Length > maxLength ? value.Substring(0, maxLength) : value;
+        }
+
         private static bool CallLibreria(OdbcConnection cn)
         {
             string sql = "CALL SPEED407.MA1004 ('XX')";
@@ -44,39 +50,46 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public int GetNextCorr(string periodo)
         {
-           
-            using (var connection = new OdbcConnection(connectionString))
+            try
             {
-               connection.Open();
-               
-               if (!CallLibreria(connection))
-                   return 0;
-               
-                using var cmd = new OdbcCommand("{ CALL speed400xx.SP_GET_NEXT_TTABD(?, ?) }", connection)
+                using (var connection = new OdbcConnection(connectionString))
                 {
-                    CommandType = CommandType.StoredProcedure
-                };
+                    connection.Open();
 
-                // IN v_period CHAR(6)
-                var pIn = new OdbcParameter("@v_period", OdbcType.Char, 6)
-                {
-                    Direction = ParameterDirection.Input,
-                    Value = periodo
-                };
-                cmd.Parameters.Add(pIn);
+                    if (!CallLibreria(connection))
+                        return 0;
 
-                // OUT next_corr INTEGER
-                var pOut = new OdbcParameter("@next_corr", OdbcType.Int)
-                {
-                    Direction = ParameterDirection.Output
-                };
-                cmd.Parameters.Add(pOut);
+                    using var cmd = new OdbcCommand("{ CALL speed400xx.SP_GET_NEXT_TTABD(?, ?) }", connection)
+                    {
+                        CommandType = CommandType.StoredProcedure
+                    };
 
-                cmd.ExecuteNonQuery();
+                    // IN v_period CHAR(6)
+                    var pIn = new OdbcParameter("@v_period", OdbcType.Char, 6)
+                    {
+                        Direction = ParameterDirection.Input,
+                        Value = periodo
+                    };
+                    cmd.Parameters.Add(pIn);
 
-                return Convert.ToInt32(pOut.Value);
-            }  
+                    // OUT next_corr: IBM i Packed Decimal, se lee como Char para evitar ERROR 22018
+                    var pOut = new OdbcParameter("@next_corr", OdbcType.Char, 15)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    cmd.Parameters.Add(pOut);
 
+                    cmd.ExecuteNonQuery();
+
+                    var rawValue = pOut.Value?.ToString()?.Trim() ?? "0";
+                    return int.TryParse(rawValue, out int result) ? result : 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error GetNextCorr: {ex.Message}");
+                throw new Exception($"[GetNextCorr] {ex.Message}", ex);
+            }
         }
 
         public async Task<bool> InsertTregc(RegistroCompras registro)
@@ -101,46 +114,46 @@ namespace OdooCls.Infrastucture.Repositorys
                         cmd.CommandType = CommandType.Text;
                         cmd.Parameters.AddWithValue("@RCEJER", registro.RCEJER);
                         cmd.Parameters.AddWithValue("@RCPERI", registro.RCPERI);
-                        cmd.Parameters.AddWithValue("@RCTDOC", registro.RCTDOC);
-                        cmd.Parameters.AddWithValue("@RCNDOC", registro.RCNDOC);
+                        cmd.Parameters.AddWithValue("@RCTDOC", Trunc(registro.RCTDOC, 2));
+                        cmd.Parameters.AddWithValue("@RCNDOC", Trunc(registro.RCNDOC, 15));
                         cmd.Parameters.AddWithValue("@RCFECH", registro.RCFECH);
-                        cmd.Parameters.AddWithValue("@RCRCXP", registro.RCRCXP);
-                        cmd.Parameters.AddWithValue("@RCCPRO", registro.RCCPRO);
-                        cmd.Parameters.AddWithValue("@RCPROV", registro.RCPROV);
-                        cmd.Parameters.AddWithValue("@RCRUC", registro.RCRUC);
-                        cmd.Parameters.AddWithValue("@RCARTI", registro.RCARTI);
+                        cmd.Parameters.AddWithValue("@RCRCXP", Trunc(registro.RCRCXP, 11));
+                        cmd.Parameters.AddWithValue("@RCCPRO", Trunc(registro.RCCPRO, 10));
+                        cmd.Parameters.AddWithValue("@RCPROV", Trunc(registro.RCPROV, 40));
+                        cmd.Parameters.AddWithValue("@RCRUC",  Trunc(registro.RCRUC, 15));
+                        cmd.Parameters.AddWithValue("@RCARTI", Trunc(registro.RCARTI, 40));
                         cmd.Parameters.AddWithValue("@RCMONE", registro.RCMONE);
                         cmd.Parameters.AddWithValue("@RCTCAM", registro.RCTCAM);
                         cmd.Parameters.AddWithValue("@RCVALV", registro.RCVALV);
-                        cmd.Parameters.AddWithValue("@RCCVAL", registro.RCCVAL);
-                        cmd.Parameters.AddWithValue("@RCMVAL", registro.RCMVAL);
+                        cmd.Parameters.AddWithValue("@RCCVAL", Trunc(registro.RCCVAL, 15));
+                        cmd.Parameters.AddWithValue("@RCMVAL", Trunc(registro.RCMVAL, 1));
                         cmd.Parameters.AddWithValue("@RCVALI", registro.RCVALI);
-                        cmd.Parameters.AddWithValue("@RCCVAI", registro.RCCVAI);
-                        cmd.Parameters.AddWithValue("@RCMVAI", registro.RCMVAI);
+                        cmd.Parameters.AddWithValue("@RCCVAI", Trunc(registro.RCCVAI, 15));
+                        cmd.Parameters.AddWithValue("@RCMVAI", Trunc(registro.RCMVAI, 1));
                         cmd.Parameters.AddWithValue("@RCDSCT", registro.RCDSCT);
-                        cmd.Parameters.AddWithValue("@RCCDSC", registro.RCCDSC);
-                        cmd.Parameters.AddWithValue("@RCMDSC", registro.RCMDSC);
+                        cmd.Parameters.AddWithValue("@RCCDSC", Trunc(registro.RCCDSC, 15));
+                        cmd.Parameters.AddWithValue("@RCMDSC", Trunc(registro.RCMDSC, 1));
                         cmd.Parameters.AddWithValue("@RCIMP1", registro.RCIMP1);
-                        cmd.Parameters.AddWithValue("@RCCIM1", registro.RCCIM1);
-                        cmd.Parameters.AddWithValue("@RCMIM1", registro.RCMIM1);
+                        cmd.Parameters.AddWithValue("@RCCIM1", Trunc(registro.RCCIM1, 15));
+                        cmd.Parameters.AddWithValue("@RCMIM1", Trunc(registro.RCMIM1, 1));
                         cmd.Parameters.AddWithValue("@RCPVTA", registro.RCPVTA);
-                        cmd.Parameters.AddWithValue("@RCCPVT", registro.RCCPVT);
-                        cmd.Parameters.AddWithValue("@RCMPVT", registro.RCMPVT);
+                        cmd.Parameters.AddWithValue("@RCCPVT", Trunc(registro.RCCPVT, 15));
+                        cmd.Parameters.AddWithValue("@RCMPVT", Trunc(registro.RCMPVT, 1));
                         cmd.Parameters.AddWithValue("@RCCONC", registro.RCCONC);
-                        cmd.Parameters.AddWithValue("@RCASTO", registro.RCASTO);
-                        cmd.Parameters.AddWithValue("@RCCOST", registro.RCCOST);
-                        cmd.Parameters.AddWithValue("@RCTREF", registro.RCTREF);
-                        cmd.Parameters.AddWithValue("@RCNREF", registro.RCNREF);
+                        cmd.Parameters.AddWithValue("@RCASTO", Trunc(registro.RCASTO, 10));
+                        cmd.Parameters.AddWithValue("@RCCOST", Trunc(registro.RCCOST, 15));
+                        cmd.Parameters.AddWithValue("@RCTREF", Trunc(registro.RCTREF, 2));
+                        cmd.Parameters.AddWithValue("@RCNREF", Trunc(registro.RCNREF, 15));
                         cmd.Parameters.AddWithValue("@RCFEVE", registro.RCFEVE);
-                        cmd.Parameters.AddWithValue("@RCNDOM", registro.RCNDOM);
-                        cmd.Parameters.AddWithValue("@RCCPAG", registro.RCCPAG);
-                        cmd.Parameters.AddWithValue("@RCSITU", registro.RCSITU);
-                        cmd.Parameters.AddWithValue("@RCUSIN", registro.RCUSIN);
+                        cmd.Parameters.AddWithValue("@RCNDOM", Trunc(registro.RCNDOM, 1));
+                        cmd.Parameters.AddWithValue("@RCCPAG", Trunc(registro.RCCPAG, 3));
+                        cmd.Parameters.AddWithValue("@RCSITU", Trunc(registro.RCSITU, 2));
+                        cmd.Parameters.AddWithValue("@RCUSIN", Trunc(registro.RCUSIN, 10));
                         cmd.Parameters.AddWithValue("@RCFEIN", registro.RCFEIN);
                         cmd.Parameters.AddWithValue("@RCHOIN", registro.RCHOIN);
-                        cmd.Parameters.AddWithValue("@RCRVVA", registro.RCRVVA);
-                        cmd.Parameters.AddWithValue("@RCREF7", registro.RCREF7);
-                        cmd.Parameters.AddWithValue("@RCCBSA", registro.RCCBSA);
+                        cmd.Parameters.AddWithValue("@RCRVVA", Trunc(registro.RCRVVA, 10));
+                        cmd.Parameters.AddWithValue("@RCREF7", Trunc(registro.RCREF7, 15));
+                        cmd.Parameters.AddWithValue("@RCCBSA", Trunc(registro.RCCBSA, 1));
 
                         var rowsAffected = await cmd.ExecuteNonQueryAsync();
                         rp = rowsAffected > 0;
@@ -299,7 +312,7 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> ValidatTipoDoc(string tipo)
         {
             bool rp = false;
-            string Query = @$"select * from {library}.ttido where tdregi='C' AND TDTIPO='{tipo}'";
+            string Query = @$"select count(*) from {library}.ttido where tdregi='C' AND TDTIPO='{tipo}'";
 
             using (var connection = new OdbcConnection(connectionString))
             {
@@ -311,12 +324,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
-                    // Verificar si se encontró algún dato
                     if (await reader.ReadAsync())
                     {
-                        // Obtener el valor de la primera columna (el resultado de COUNT(1))
-                        int count = reader.GetInt32(0); // Obtener el valor de la primera columna
-                        rp = count > 0; // Si hay alguna fila, existe el tipo de documento
+                        int count = reader.GetInt32(0);
+                        rp = count > 0;
                     }
                 }
             }
