@@ -98,6 +98,16 @@ namespace OdooCls.Application.Services
                 }
                 
                 rcdto.RCRCXP = rcxp;
+
+                // Valores fijos requeridos por el sistema
+                rcdto.RCCVAL = "6011003";
+                rcdto.RCMVAL = "C";
+                rcdto.RCCIM1 = "4011001";
+                rcdto.RCMIM1 = "C";
+                rcdto.RCCPVT = "4212001";
+                rcdto.RCMPVT = "A";
+                rcdto.RCCOST = "014100002";
+
                 RegistroCompras compras = RegistroComprasMapper.DtoToEntity(rcdto);
                 try
                 {
