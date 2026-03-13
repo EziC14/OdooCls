@@ -182,34 +182,15 @@ namespace OdooCls.Infrastucture.Repositorys
             RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
             RCFEVE,RCNDOM,RCCPAG,RCSITU,RCUSIN,RCFEIN,RCHOIN,RCRVVA,RCREF7,RCCBSA
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-
-            string queryCtxp = $@"INSERT INTO {library}.tctxp (
-                XPEJER, XPPERI, XPTDOC, XPNDOC, XPFECH, XPFEVE, XPRCXP, XPCPRO, XPCPAG,
-                XPMONE, XPTCMO, XPPVMO, XPPAMO, XPPVMN, XPPAMN, XPTCDO, XPPVDO, XPPADO,
-                XPSITU, XPPFPA, XPPBCO, XPPIMP, XPPMON, XPACTI, XPTGAS, XPCTAC, XPCCTO,
-                XPRF01, XPRF02, XPRF03, XPRF04, XPRF05
-            )
-            SELECT
-                RCEJER, RCPERI, RCTDOC, RCNDOC, RCFECH, RCFEVE, SUBSTR(RCRCXP, 1, 10), RCCPRO, RCCPAG,
-                RCMONE, RCTCAM, RCPVTA, 0,
-                CASE WHEN RCMONE = 0 THEN RCPVTA ELSE ROUND(RCPVTA * RCTCAM, 2) END, 0,
-                RCTCAM,
-                CASE WHEN RCMONE = 0 THEN ROUND(RCPVTA / RCTCAM, 2) ELSE RCPVTA END, 0,
-                RCSITU, 0, '', 0, 0, '', '', RCCPVT, RCCOST,
-                '', '', '', 0, 0
-            FROM {library}.tregc
-            WHERE RCEJER = ? AND RCPERI = ? AND RCTDOC = ? AND RCNDOC = ?";
-
-            using OdbcConnection cn = new OdbcConnection(connectionString);
-            await cn.OpenAsync();
-
-            if (!CallLibreria(cn))
-                return false;
-
-            using var tx = cn.BeginTransaction();
             try
             {
-                using (var cmdTregc = new OdbcCommand(queryTregc, cn, tx))
+                using OdbcConnection cn = new OdbcConnection(connectionString);
+                await cn.OpenAsync();
+
+                if (!CallLibreria(cn))
+                    return false;
+
+                using (var cmdTregc = new OdbcCommand(queryTregc, cn))
                 {
                     cmdTregc.CommandType = CommandType.Text;
                     cmdTregc.Parameters.AddWithValue("@RCEJER", registro.RCEJER);
@@ -257,49 +238,31 @@ namespace OdooCls.Infrastucture.Repositorys
 
                     var rowsTregc = await cmdTregc.ExecuteNonQueryAsync();
                     if (rowsTregc <= 0)
-                    {
-                        tx.Rollback();
                         return false;
-                    }
                 }
 
-                using (var cmdCtxp = new OdbcCommand(queryCtxp, cn, tx))
-                {
-                    cmdCtxp.CommandType = CommandType.Text;
-                    cmdCtxp.Parameters.AddWithValue("@RCEJER", registro.RCEJER);
-                    cmdCtxp.Parameters.AddWithValue("@RCPERI", registro.RCPERI);
-                    cmdCtxp.Parameters.AddWithValue("@RCTDOC", Trunc(registro.RCTDOC, 2));
-                    cmdCtxp.Parameters.AddWithValue("@RCNDOC", Trunc(registro.RCNDOC, 15));
-
-                    var rowsCtxp = await cmdCtxp.ExecuteNonQueryAsync();
-                    if (rowsCtxp <= 0)
-                    {
-                        tx.Rollback();
-                        return false;
-                    }
-                }
-
-                tx.Commit();
+                await InsertCtxpInConnection(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC);
                 return true;
             }
             catch (Exception ex)
             {
                 try
                 {
-                    tx.Rollback();
+                    using OdbcConnection cnCleanup = new OdbcConnection(connectionString);
+                    await cnCleanup.OpenAsync();
+                    if (CallLibreria(cnCleanup))
+                        await CleanupPartialPurchasesInserts(cnCleanup, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP);
                 }
-                catch
-                {
-                }
+                catch { }
 
                 Console.WriteLine($"Error InsertTregcAndCtxp: {ex.Message}");
                 throw new Exception($"[InsertTregcAndCtxp] {ex.Message}", ex);
             }
         }
 
-        public async Task<bool> InsertCtxp(int ejercicio, int mes, string tipodoc, string nrodoc)
+        private async Task InsertCtxpInConnection(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc)
         {
-            string query = $@"INSERT INTO {library}.tctxp (
+            string queryCtxp = $@"INSERT INTO {library}.tctxp (
                 XPEJER, XPPERI, XPTDOC, XPNDOC, XPFECH, XPFEVE, XPRCXP, XPCPRO, XPCPAG,
                 XPMONE, XPTCMO, XPPVMO, XPPAMO, XPPVMN, XPPAMN, XPTCDO, XPPVDO, XPPADO,
                 XPSITU, XPPFPA, XPPBCO, XPPIMP, XPPMON, XPACTI, XPTGAS, XPCTAC, XPCCTO,
@@ -316,23 +279,56 @@ namespace OdooCls.Infrastucture.Repositorys
             FROM {library}.tregc
             WHERE RCEJER = ? AND RCPERI = ? AND RCTDOC = ? AND RCNDOC = ?";
 
+            using OdbcCommand cmdCtxp = new OdbcCommand(queryCtxp, cn);
+            cmdCtxp.CommandType = CommandType.Text;
+            cmdCtxp.Parameters.AddWithValue("@RCEJER", ejercicio);
+            cmdCtxp.Parameters.AddWithValue("@RCPERI", mes);
+            cmdCtxp.Parameters.AddWithValue("@RCTDOC", Trunc(tipodoc, 2));
+            cmdCtxp.Parameters.AddWithValue("@RCNDOC", Trunc(nrodoc, 15));
+
+            var rowsCtxp = await cmdCtxp.ExecuteNonQueryAsync();
+            if (rowsCtxp <= 0)
+                throw new Exception("No se insertaron filas en TCTXP");
+        }
+
+        private async Task CleanupPartialPurchasesInserts(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc, string rcxpx)
+        {
+            string deleteTctxp = $@"DELETE FROM {library}.TCTXP WHERE XPEJER = ? AND XPPERI = ? AND XPTDOC = ? AND XPNDOC = ?";
+            string deleteTregc = $@"DELETE FROM {library}.TREGC WHERE RCEJER = ? AND RCPERI = ? AND RCTDOC = ? AND RCNDOC = ? AND RCRCXP = ?";
+
+            using (OdbcCommand cmd1 = new OdbcCommand(deleteTctxp, cn))
+            {
+                cmd1.CommandType = CommandType.Text;
+                cmd1.Parameters.AddWithValue("@XPEJER", ejercicio);
+                cmd1.Parameters.AddWithValue("@XPPERI", mes);
+                cmd1.Parameters.AddWithValue("@XPTDOC", Trunc(tipodoc, 2));
+                cmd1.Parameters.AddWithValue("@XPNDOC", Trunc(nrodoc, 15));
+                await cmd1.ExecuteNonQueryAsync();
+            }
+
+            using (OdbcCommand cmd2 = new OdbcCommand(deleteTregc, cn))
+            {
+                cmd2.CommandType = CommandType.Text;
+                cmd2.Parameters.AddWithValue("@RCEJER", ejercicio);
+                cmd2.Parameters.AddWithValue("@RCPERI", mes);
+                cmd2.Parameters.AddWithValue("@RCTDOC", Trunc(tipodoc, 2));
+                cmd2.Parameters.AddWithValue("@RCNDOC", Trunc(nrodoc, 15));
+                cmd2.Parameters.AddWithValue("@RCRCXP", Trunc(rcxpx, 11));
+                await cmd2.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task<bool> InsertCtxp(int ejercicio, int mes, string tipodoc, string nrodoc)
+        {
             try
             {
                 using OdbcConnection cn = new OdbcConnection(connectionString);
-                using OdbcCommand cmd = new OdbcCommand(query, cn);
                 await cn.OpenAsync();
 
                 if (!CallLibreria(cn))
                     return false;
-
-                cmd.CommandType = CommandType.Text;
-                cmd.Parameters.AddWithValue("@RCEJER", ejercicio);
-                cmd.Parameters.AddWithValue("@RCPERI", mes);
-                cmd.Parameters.AddWithValue("@RCTDOC", tipodoc);
-                cmd.Parameters.AddWithValue("@RCNDOC", nrodoc);
-
-                var rowsAffected = await cmd.ExecuteNonQueryAsync();
-                return rowsAffected > 0;
+                await InsertCtxpInConnection(cn, ejercicio, mes, tipodoc, nrodoc);
+                return true;
             }
             catch (Exception ex)
             {
