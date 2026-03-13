@@ -111,20 +111,18 @@ namespace OdooCls.Application.Services
                 RegistroCompras compras = RegistroComprasMapper.DtoToEntity(rcdto);
                 try
                 {
-                    Itregc = await Registro.InsertTregc(compras);
+                    Itregc = await Registro.InsertTregcAndCtxp(compras);
                 }
                 catch (Exception exIns)
                 {
-                    return new ApiResponse<RegistroComprasDto>(500, 500, $"Fallo en InsertTregc: {exIns.Message}");
+                    return new ApiResponse<RegistroComprasDto>(500, 500, $"Fallo en transacción RC/CXP: {exIns.Message}");
                 }
                 if (Itregc == true)
                 {
-
                     return new ApiResponse<RegistroComprasDto>(200, 1000, $"Documentos Registrado en el RC");
                 }
                 else 
                 {
-
                     return new ApiResponse<RegistroComprasDto>(400, 1001, $"no se pudo registrar en el registro de compras ");
                 }
 

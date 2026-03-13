@@ -175,6 +175,172 @@ namespace OdooCls.Infrastucture.Repositorys
             throw new NotImplementedException();
         }
 
+        public async Task<bool> InsertTregcAndCtxp(RegistroCompras registro)
+        {
+            string queryTregc = $@"insert into {library}.tregc (
+            RCEJER,RCPERI,RCTDOC,RCNDOC,RCFECH,RCRCXP,RCCPRO,RCPROV,RCRUC,RCARTI,RCMONE,RCTCAM,RCVALV,RCCVAL,RCMVAL,RCVALI,
+            RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
+            RCFEVE,RCNDOM,RCCPAG,RCSITU,RCUSIN,RCFEIN,RCHOIN,RCRVVA,RCREF7,RCCBSA
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+            string queryCtxp = $@"INSERT INTO {library}.tctxp (
+                XPEJER, XPPERI, XPTDOC, XPNDOC, XPFECH, XPFEVE, XPRCXP, XPCPRO, XPCPAG,
+                XPMONE, XPTCMO, XPPVMO, XPPAMO, XPPVMN, XPPAMN, XPTCDO, XPPVDO, XPPADO,
+                XPSITU, XPPFPA, XPPBCO, XPPIMP, XPPMON, XPACTI, XPTGAS, XPCTAC, XPCCTO,
+                XPRF01, XPRF02, XPRF03, XPRF04, XPRF05
+            )
+            SELECT
+                RCEJER, RCPERI, RCTDOC, RCNDOC, RCFECH, RCFEVE, SUBSTR(RCRCXP, 1, 10), RCCPRO, RCCPAG,
+                RCMONE, RCTCAM, RCPVTA, 0,
+                CASE WHEN RCMONE = 0 THEN RCPVTA ELSE ROUND(RCPVTA * RCTCAM, 2) END, 0,
+                RCTCAM,
+                CASE WHEN RCMONE = 0 THEN ROUND(RCPVTA / RCTCAM, 2) ELSE RCPVTA END, 0,
+                RCSITU, 0, '', 0, 0, '', '', RCCPVT, RCCOST,
+                '', '', '', 0, 0
+            FROM {library}.tregc
+            WHERE RCEJER = ? AND RCPERI = ? AND RCTDOC = ? AND RCNDOC = ?";
+
+            using OdbcConnection cn = new OdbcConnection(connectionString);
+            await cn.OpenAsync();
+
+            if (!CallLibreria(cn))
+                return false;
+
+            using var tx = cn.BeginTransaction();
+            try
+            {
+                using (var cmdTregc = new OdbcCommand(queryTregc, cn, tx))
+                {
+                    cmdTregc.CommandType = CommandType.Text;
+                    cmdTregc.Parameters.AddWithValue("@RCEJER", registro.RCEJER);
+                    cmdTregc.Parameters.AddWithValue("@RCPERI", registro.RCPERI);
+                    cmdTregc.Parameters.AddWithValue("@RCTDOC", Trunc(registro.RCTDOC, 2));
+                    cmdTregc.Parameters.AddWithValue("@RCNDOC", Trunc(registro.RCNDOC, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCFECH", registro.RCFECH);
+                    cmdTregc.Parameters.AddWithValue("@RCRCXP", Trunc(registro.RCRCXP, 11));
+                    cmdTregc.Parameters.AddWithValue("@RCCPRO", Trunc(registro.RCCPRO, 10));
+                    cmdTregc.Parameters.AddWithValue("@RCPROV", Trunc(registro.RCPROV, 40));
+                    cmdTregc.Parameters.AddWithValue("@RCRUC", Trunc(registro.RCRUC, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCARTI", Trunc(registro.RCARTI, 40));
+                    cmdTregc.Parameters.AddWithValue("@RCMONE", registro.RCMONE);
+                    cmdTregc.Parameters.AddWithValue("@RCTCAM", registro.RCTCAM);
+                    cmdTregc.Parameters.AddWithValue("@RCVALV", registro.RCVALV);
+                    cmdTregc.Parameters.AddWithValue("@RCCVAL", Trunc(registro.RCCVAL, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCMVAL", Trunc(registro.RCMVAL, 1));
+                    cmdTregc.Parameters.AddWithValue("@RCVALI", registro.RCVALI);
+                    cmdTregc.Parameters.AddWithValue("@RCCVAI", Trunc(registro.RCCVAI, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCMVAI", Trunc(registro.RCMVAI, 1));
+                    cmdTregc.Parameters.AddWithValue("@RCDSCT", registro.RCDSCT);
+                    cmdTregc.Parameters.AddWithValue("@RCCDSC", Trunc(registro.RCCDSC, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCMDSC", Trunc(registro.RCMDSC, 1));
+                    cmdTregc.Parameters.AddWithValue("@RCIMP1", registro.RCIMP1);
+                    cmdTregc.Parameters.AddWithValue("@RCCIM1", Trunc(registro.RCCIM1, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCMIM1", Trunc(registro.RCMIM1, 1));
+                    cmdTregc.Parameters.AddWithValue("@RCPVTA", registro.RCPVTA);
+                    cmdTregc.Parameters.AddWithValue("@RCCPVT", Trunc(registro.RCCPVT, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCMPVT", Trunc(registro.RCMPVT, 1));
+                    cmdTregc.Parameters.AddWithValue("@RCCONC", registro.RCCONC);
+                    cmdTregc.Parameters.AddWithValue("@RCASTO", Trunc(registro.RCASTO, 10));
+                    cmdTregc.Parameters.AddWithValue("@RCCOST", Trunc(registro.RCCOST, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCTREF", Trunc(registro.RCTREF, 2));
+                    cmdTregc.Parameters.AddWithValue("@RCNREF", Trunc(registro.RCNREF, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCFEVE", registro.RCFEVE);
+                    cmdTregc.Parameters.AddWithValue("@RCNDOM", Trunc(registro.RCNDOM, 1));
+                    cmdTregc.Parameters.AddWithValue("@RCCPAG", Trunc(registro.RCCPAG, 3));
+                    cmdTregc.Parameters.AddWithValue("@RCSITU", Trunc(registro.RCSITU, 2));
+                    cmdTregc.Parameters.AddWithValue("@RCUSIN", Trunc(registro.RCUSIN, 10));
+                    cmdTregc.Parameters.AddWithValue("@RCFEIN", registro.RCFEIN);
+                    cmdTregc.Parameters.AddWithValue("@RCHOIN", registro.RCHOIN);
+                    cmdTregc.Parameters.AddWithValue("@RCRVVA", Trunc(registro.RCRVVA, 10));
+                    cmdTregc.Parameters.AddWithValue("@RCREF7", Trunc(registro.RCREF7, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCCBSA", Trunc(registro.RCCBSA, 1));
+
+                    var rowsTregc = await cmdTregc.ExecuteNonQueryAsync();
+                    if (rowsTregc <= 0)
+                    {
+                        tx.Rollback();
+                        return false;
+                    }
+                }
+
+                using (var cmdCtxp = new OdbcCommand(queryCtxp, cn, tx))
+                {
+                    cmdCtxp.CommandType = CommandType.Text;
+                    cmdCtxp.Parameters.AddWithValue("@RCEJER", registro.RCEJER);
+                    cmdCtxp.Parameters.AddWithValue("@RCPERI", registro.RCPERI);
+                    cmdCtxp.Parameters.AddWithValue("@RCTDOC", Trunc(registro.RCTDOC, 2));
+                    cmdCtxp.Parameters.AddWithValue("@RCNDOC", Trunc(registro.RCNDOC, 15));
+
+                    var rowsCtxp = await cmdCtxp.ExecuteNonQueryAsync();
+                    if (rowsCtxp <= 0)
+                    {
+                        tx.Rollback();
+                        return false;
+                    }
+                }
+
+                tx.Commit();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    tx.Rollback();
+                }
+                catch
+                {
+                }
+
+                Console.WriteLine($"Error InsertTregcAndCtxp: {ex.Message}");
+                throw new Exception($"[InsertTregcAndCtxp] {ex.Message}", ex);
+            }
+        }
+
+        public async Task<bool> InsertCtxp(int ejercicio, int mes, string tipodoc, string nrodoc)
+        {
+            string query = $@"INSERT INTO {library}.tctxp (
+                XPEJER, XPPERI, XPTDOC, XPNDOC, XPFECH, XPFEVE, XPRCXP, XPCPRO, XPCPAG,
+                XPMONE, XPTCMO, XPPVMO, XPPAMO, XPPVMN, XPPAMN, XPTCDO, XPPVDO, XPPADO,
+                XPSITU, XPPFPA, XPPBCO, XPPIMP, XPPMON, XPACTI, XPTGAS, XPCTAC, XPCCTO,
+                XPRF01, XPRF02, XPRF03, XPRF04, XPRF05
+            )
+            SELECT
+                RCEJER, RCPERI, RCTDOC, RCNDOC, RCFECH, RCFEVE, SUBSTR(RCRCXP, 1, 10), RCCPRO, RCCPAG,
+                RCMONE, RCTCAM, RCPVTA, 0,
+                CASE WHEN RCMONE = 0 THEN RCPVTA ELSE ROUND(RCPVTA * RCTCAM, 2) END, 0,
+                RCTCAM,
+                CASE WHEN RCMONE = 0 THEN ROUND(RCPVTA / RCTCAM, 2) ELSE RCPVTA END, 0,
+                RCSITU, 0, '', 0, 0, '', '', RCCPVT, RCCOST,
+                '', '', '', 0, 0
+            FROM {library}.tregc
+            WHERE RCEJER = ? AND RCPERI = ? AND RCTDOC = ? AND RCNDOC = ?";
+
+            try
+            {
+                using OdbcConnection cn = new OdbcConnection(connectionString);
+                using OdbcCommand cmd = new OdbcCommand(query, cn);
+                await cn.OpenAsync();
+
+                if (!CallLibreria(cn))
+                    return false;
+
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@RCEJER", ejercicio);
+                cmd.Parameters.AddWithValue("@RCPERI", mes);
+                cmd.Parameters.AddWithValue("@RCTDOC", tipodoc);
+                cmd.Parameters.AddWithValue("@RCNDOC", nrodoc);
+
+                var rowsAffected = await cmd.ExecuteNonQueryAsync();
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error InsertCtxp: {ex.Message}");
+                throw new Exception($"[InsertCtxp] {ex.Message}", ex);
+            }
+        }
+
         public async Task<bool> ValidaMoneda(int moneda)
         {
 

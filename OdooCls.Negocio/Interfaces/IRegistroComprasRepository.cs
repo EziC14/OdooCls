@@ -12,6 +12,8 @@ namespace OdooCls.Core.Interfaces
         public int GetNextCorr(string periodo);
         public Task<bool> InsertTregc(RegistroCompras registro);
         public Task<bool> InsertTregcd(RegistroComprasDetail registro);
+        public Task<bool> InsertCtxp(int ejercicio, int mes, string tipodoc, string nrodoc);
+        public Task<bool> InsertTregcAndCtxp(RegistroCompras registro);
         public Task<bool> ValidatTipoDoc(string tipo);
         public Task<bool> ValidaMoneda(int moneda);
         public Task<bool> ValidarExistenciaDocumento(int ejercicio, int mes, string Tipodoc, string nrodoc);
