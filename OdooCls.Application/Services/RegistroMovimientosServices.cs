@@ -121,7 +121,8 @@ namespace OdooCls.Application.Services
                             "S"
                         );
                         if (!stockOkOrigen)
-                            Console.WriteLine($"⚠️ Advertencia: No se descontó stock en origen para artículo {detalle.MDCOAR}");
+                            return new ApiResponse<RegistroMovimientosDto>(400, 6039,
+                                $"Stock insuficiente para artículo {detalle.MDCOAR} en almacén {detalle.MDALMA}");
                         
                     }
                     else
@@ -134,7 +135,8 @@ namespace OdooCls.Application.Services
                             detalle.MDCMOV
                         );
                         if (!stockOk)
-                            Console.WriteLine($"⚠️ Advertencia: No se actualizó stock para artículo {detalle.MDCOAR}");
+                            return new ApiResponse<RegistroMovimientosDto>(400, 6039,
+                                $"Stock insuficiente para artículo {detalle.MDCOAR} en almacén {detalle.MDALMA}");
                     }
                 }
 
@@ -299,6 +301,29 @@ namespace OdooCls.Application.Services
                 if (detalle.MDTMOV != dto.Movimiento.MHTMOV)
                     return new ApiResponse<RegistroMovimientosDto>(400, 6029, 
                         $"MDTMOV debe coincidir con MHTMOV ({dto.Movimiento.MHTMOV})");
+            }
+
+            // 2.2 Validar stock disponible para salidas (no permitir negativos)
+            var salidasAgrupadas = dto.MovimientoDetails
+                .Where(d => d.MDCMOV == "S")
+                .GroupBy(d => new { d.MDALMA, d.MDCOAR })
+                .Select(g => new
+                {
+                    g.Key.MDALMA,
+                    g.Key.MDCOAR,
+                    CantidadSalida = g.Sum(x => x.MDCANA)
+                });
+
+            foreach (var salida in salidasAgrupadas)
+            {
+                var stockActual = await repo.ObtenerStockActual(salida.MDALMA, salida.MDCOAR);
+                if (stockActual < 0)
+                    return new ApiResponse<RegistroMovimientosDto>(400, 6038,
+                        $"No existe stock para artículo {salida.MDCOAR} en almacén {salida.MDALMA}");
+
+                if (stockActual < salida.CantidadSalida)
+                    return new ApiResponse<RegistroMovimientosDto>(400, 6039,
+                        $"Stock insuficiente para artículo {salida.MDCOAR} en almacén {salida.MDALMA}. Stock actual: {stockActual}, solicitado: {salida.CantidadSalida}");
             }
 
             // 3. VALIDAR SEGÚN EL TIPO

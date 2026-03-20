@@ -25,6 +25,7 @@ namespace OdooCls.Core.Interfaces
         
         // Métodos para actualización de stock y valorización
         Task<bool> ActualizarStock(string almacen, string articulo, decimal cantidad, string tipoMovimiento);
+        Task<decimal> ObtenerStockActual(string almacen, string articulo);
         
         // Métodos para transferencias entre almacenes
         bool EsTransferencia(string tipoMovimiento);

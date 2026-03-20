@@ -666,13 +666,21 @@ namespace OdooCls.Infrastucture.Repositorys
                     // 2a. ACTUALIZAR stock existente
                     string queryUpdate = tipoMovimiento == "I"
                         ? $@"UPDATE {library}.TSALM SET SALACT=SALACT+? WHERE SALALM=? AND SALCOD=?"
-                        : $@"UPDATE {library}.TSALM SET SALACT=SALACT-? WHERE SALALM=? AND SALCOD=?";
+                        : $@"UPDATE {library}.TSALM SET SALACT=SALACT-? WHERE SALALM=? AND SALCOD=? AND SALACT>=?";
                     
                     using var cmdUpdate = new OdbcCommand(queryUpdate, cn);
                     cmdUpdate.Parameters.AddWithValue("@cantidad", cantidad);
                     cmdUpdate.Parameters.AddWithValue("@SALALM", almacen);
                     cmdUpdate.Parameters.AddWithValue("@SALCOD", articulo);
-                    await cmdUpdate.ExecuteNonQueryAsync();
+                    if (tipoMovimiento == "S")
+                        cmdUpdate.Parameters.AddWithValue("@stockMinimo", cantidad);
+
+                    var rows = await cmdUpdate.ExecuteNonQueryAsync();
+                    if (rows <= 0)
+                    {
+                        Console.WriteLine($"ERROR: Stock insuficiente para artículo {articulo} en almacén {almacen}");
+                        return false;
+                    }
                 }
                 else
                 {
@@ -702,6 +710,30 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 Console.WriteLine($"Error actualizando stock: {ex.Message}");
                 return false;
+            }
+        }
+
+        public async Task<decimal> ObtenerStockActual(string almacen, string articulo)
+        {
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                await cn.OpenAsync();
+
+                string query = $@"SELECT SALACT FROM {library}.TSALM WHERE SALALM=? AND SALCOD=?";
+                using var cmd = new OdbcCommand(query, cn);
+                cmd.Parameters.AddWithValue("@SALALM", almacen);
+                cmd.Parameters.AddWithValue("@SALCOD", articulo);
+
+                var result = await cmd.ExecuteScalarAsync();
+                if (result == null || result == DBNull.Value)
+                    return -1;
+
+                return Convert.ToDecimal(result);
+            }
+            catch
+            {
+                return -1;
             }
         }
 
