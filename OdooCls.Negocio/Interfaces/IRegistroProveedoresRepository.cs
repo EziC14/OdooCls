@@ -8,5 +8,8 @@ namespace OdooCls.Core.Interfaces
         Task<bool> UpdateNombreYSituacion(string procve, string nombre, string situacion);
         Task<bool> ExisteProveedor(string procve);
         Task<bool> ExisteRuc(string ruc);
+        Task<List<RegistroProveedor>> GetAllProveedores(int page, int pageSize);
+        Task<int> GetTotalProveedoresCount();
+        Task<RegistroProveedor?> GetProveedorById(string procve);
     }
 }

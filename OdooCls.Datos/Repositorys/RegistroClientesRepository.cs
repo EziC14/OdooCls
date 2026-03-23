@@ -142,5 +142,90 @@ namespace OdooCls.Infrastucture.Repositorys
                 throw;
             }
         }
+
+        public async Task<List<RegistroCliente>> GetAllClientes(int page, int pageSize)
+        {
+            int offset = (page - 1) * pageSize;
+            string query = $@"select CLICVE, CLINOM, CLIDIR, CLICPO, CLIDIS, CLIPRO, CLIDPT, CLIPAI, CLIRUC, CLISIT, CLILCR, CPACVE
+                              from {library}.tclie
+                              order by CLICVE
+                              offset {offset} rows fetch next {pageSize} rows only";
+            var result = new List<RegistroCliente>();
+            using var cn = new OdbcConnection(connectionString);
+            using var cmd = new OdbcCommand(query, cn);
+            await cn.OpenAsync();
+
+            if (!CallLibreria(cn))
+                return result;
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new RegistroCliente
+                {
+                    CLICVE = reader["CLICVE"]?.ToString() ?? string.Empty,
+                    CLINOM = reader["CLINOM"]?.ToString() ?? string.Empty,
+                    CLIDIR = reader["CLIDIR"]?.ToString() ?? string.Empty,
+                    CLICPO = reader["CLICPO"]?.ToString() ?? string.Empty,
+                    CLIDIS = reader["CLIDIS"]?.ToString() ?? string.Empty,
+                    CLIPRO = reader["CLIPRO"]?.ToString() ?? string.Empty,
+                    CLIDPT = reader["CLIDPT"]?.ToString() ?? string.Empty,
+                    CLIPAI = reader["CLIPAI"]?.ToString() ?? string.Empty,
+                    CLIRUC = reader["CLIRUC"]?.ToString() ?? string.Empty,
+                    CLISIT = reader["CLISIT"]?.ToString() ?? string.Empty,
+                    CLILCR = reader["CLILCR"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["CLILCR"]),
+                    CPACVE = reader["CPACVE"]?.ToString() ?? string.Empty
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<int> GetTotalClientesCount()
+        {
+            string query = $@"select count(*) from {library}.tclie";
+            using var cn = new OdbcConnection(connectionString);
+            using var cmd = new OdbcCommand(query, cn);
+            await cn.OpenAsync();
+
+            if (!CallLibreria(cn))
+                return 0;
+
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result ?? 0);
+        }
+
+        public async Task<RegistroCliente?> GetClienteById(string clicve)
+        {
+            string query = $@"select CLICVE, CLINOM, CLIDIR, CLICPO, CLIDIS, CLIPRO, CLIDPT, CLIPAI, CLIRUC, CLISIT, CLILCR, CPACVE
+                              from {library}.tclie where CLICVE=?";
+            using var cn = new OdbcConnection(connectionString);
+            using var cmd = new OdbcCommand(query, cn);
+            await cn.OpenAsync();
+
+            if (!CallLibreria(cn))
+                return null;
+
+            cmd.Parameters.AddWithValue("@CLICVE", clicve);
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+                return null;
+
+            return new RegistroCliente
+            {
+                CLICVE = reader["CLICVE"]?.ToString() ?? string.Empty,
+                CLINOM = reader["CLINOM"]?.ToString() ?? string.Empty,
+                CLIDIR = reader["CLIDIR"]?.ToString() ?? string.Empty,
+                CLICPO = reader["CLICPO"]?.ToString() ?? string.Empty,
+                CLIDIS = reader["CLIDIS"]?.ToString() ?? string.Empty,
+                CLIPRO = reader["CLIPRO"]?.ToString() ?? string.Empty,
+                CLIDPT = reader["CLIDPT"]?.ToString() ?? string.Empty,
+                CLIPAI = reader["CLIPAI"]?.ToString() ?? string.Empty,
+                CLIRUC = reader["CLIRUC"]?.ToString() ?? string.Empty,
+                CLISIT = reader["CLISIT"]?.ToString() ?? string.Empty,
+                CLILCR = reader["CLILCR"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["CLILCR"]),
+                CPACVE = reader["CPACVE"]?.ToString() ?? string.Empty
+            };
+        }
     }
 }

@@ -122,5 +122,102 @@ namespace OdooCls.Infrastucture.Repositorys
                 return false;
             }
         }
+
+        public async Task<List<RegistroAlmacen>> GetAllAlmacenes(int page, int pageSize)
+        {
+            int offset = (page - 1) * pageSize;
+            string query = $@"select ALCODI, ALNOMB, ALRESP, ALVALO, ALSITU, ALINGR, ALSALI, ALTRAN,
+                                     ALDIRE, ALCANT, ALDISD, ALUBGD, ALCPLD, ALREF1, ALREF2, ALFLG1, ALFLG2
+                              from {library}.talma
+                              order by ALCODI
+                              offset {offset} rows fetch next {pageSize} rows only";
+            var result = new List<RegistroAlmacen>();
+            using var cn = new OdbcConnection(connectionString);
+            using var cmd = new OdbcCommand(query, cn);
+            await cn.OpenAsync();
+
+            if (!CallLibreria(cn))
+                return result;
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new RegistroAlmacen
+                {
+                    ALCODI = reader["ALCODI"]?.ToString() ?? string.Empty,
+                    ALNOMB = reader["ALNOMB"]?.ToString() ?? string.Empty,
+                    ALRESP = reader["ALRESP"]?.ToString() ?? string.Empty,
+                    ALVALO = reader["ALVALO"]?.ToString() ?? string.Empty,
+                    ALSITU = reader["ALSITU"]?.ToString() ?? string.Empty,
+                    ALINGR = Convert.ToInt32(reader["ALINGR"]),
+                    ALSALI = Convert.ToInt32(reader["ALSALI"]),
+                    ALTRAN = Convert.ToInt32(reader["ALTRAN"]),
+                    ALDIRE = reader["ALDIRE"]?.ToString() ?? string.Empty,
+                    ALCANT = Convert.ToInt32(reader["ALCANT"]),
+                    ALDISD = reader["ALDISD"]?.ToString() ?? string.Empty,
+                    ALUBGD = reader["ALUBGD"]?.ToString() ?? string.Empty,
+                    ALCPLD = reader["ALCPLD"]?.ToString() ?? string.Empty,
+                    ALREF1 = reader["ALREF1"]?.ToString() ?? string.Empty,
+                    ALREF2 = reader["ALREF2"]?.ToString() ?? string.Empty,
+                    ALFLG1 = reader["ALFLG1"]?.ToString() ?? string.Empty,
+                    ALFLG2 = reader["ALFLG2"]?.ToString() ?? string.Empty
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<int> GetTotalAlmacenesCount()
+        {
+            string query = $@"select count(*) from {library}.talma";
+            using var cn = new OdbcConnection(connectionString);
+            using var cmd = new OdbcCommand(query, cn);
+            await cn.OpenAsync();
+
+            if (!CallLibreria(cn))
+                return 0;
+
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result ?? 0);
+        }
+
+        public async Task<RegistroAlmacen?> GetAlmacenById(string alcodi)
+        {
+            string query = $@"select ALCODI, ALNOMB, ALRESP, ALVALO, ALSITU, ALINGR, ALSALI, ALTRAN,
+                                     ALDIRE, ALCANT, ALDISD, ALUBGD, ALCPLD, ALREF1, ALREF2, ALFLG1, ALFLG2
+                              from {library}.talma where ALCODI=?";
+            using var cn = new OdbcConnection(connectionString);
+            using var cmd = new OdbcCommand(query, cn);
+            await cn.OpenAsync();
+
+            if (!CallLibreria(cn))
+                return null;
+
+            cmd.Parameters.AddWithValue("@ALCODI", alcodi);
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+                return null;
+
+            return new RegistroAlmacen
+            {
+                ALCODI = reader["ALCODI"]?.ToString() ?? string.Empty,
+                ALNOMB = reader["ALNOMB"]?.ToString() ?? string.Empty,
+                ALRESP = reader["ALRESP"]?.ToString() ?? string.Empty,
+                ALVALO = reader["ALVALO"]?.ToString() ?? string.Empty,
+                ALSITU = reader["ALSITU"]?.ToString() ?? string.Empty,
+                ALINGR = Convert.ToInt32(reader["ALINGR"]),
+                ALSALI = Convert.ToInt32(reader["ALSALI"]),
+                ALTRAN = Convert.ToInt32(reader["ALTRAN"]),
+                ALDIRE = reader["ALDIRE"]?.ToString() ?? string.Empty,
+                ALCANT = Convert.ToInt32(reader["ALCANT"]),
+                ALDISD = reader["ALDISD"]?.ToString() ?? string.Empty,
+                ALUBGD = reader["ALUBGD"]?.ToString() ?? string.Empty,
+                ALCPLD = reader["ALCPLD"]?.ToString() ?? string.Empty,
+                ALREF1 = reader["ALREF1"]?.ToString() ?? string.Empty,
+                ALREF2 = reader["ALREF2"]?.ToString() ?? string.Empty,
+                ALFLG1 = reader["ALFLG1"]?.ToString() ?? string.Empty,
+                ALFLG2 = reader["ALFLG2"]?.ToString() ?? string.Empty
+            };
+        }
     }
 }

@@ -97,5 +97,77 @@ namespace OdooCls.Application.Services
                 return new ApiResponse<RegistroProveedoresDto>(500, 500, $"Error interno del servidor: {ex.Message}");
             }
         }
+
+        public async Task<ApiResponse<PaginationResponseDto<RegistroProveedoresDto>>> GetAllAsync(int page = 1, int pageSize = 20)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1 || pageSize > 100) pageSize = 20;
+
+                var rows = await repo.GetAllProveedores(page, pageSize);
+                var totalCount = await repo.GetTotalProveedoresCount();
+                
+                var data = rows.Select(x => new RegistroProveedoresDto
+                {
+                    PROCVE = x.PROCVE,
+                    PRONOM = x.PRONOM,
+                    PRODIR = x.PRODIR,
+                    PROCPO = x.PROCPO,
+                    PRODIS = x.PRODIS,
+                    PROPRO = x.PROPRO,
+                    PRODPT = x.PRODPT,
+                    PROPAI = x.PROPAI,
+                    PRORUC = x.PRORUC,
+                    PROSIT = x.PROSIT,
+                    PRORF1 = x.PRORF1,
+                    PROARE = x.PROARE,
+                    CPACVE = x.CPACVE
+                }).ToList();
+
+                var paginatedData = new PaginationResponseDto<RegistroProveedoresDto>(data, totalCount, page, pageSize);
+                return new ApiResponse<PaginationResponseDto<RegistroProveedoresDto>>(200, 1000, "Consulta realizada correctamente", paginatedData);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<PaginationResponseDto<RegistroProveedoresDto>>(500, 500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<RegistroProveedoresDto>> GetByIdAsync(string id)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(id))
+                    return new ApiResponse<RegistroProveedoresDto>(400, 4003, "PROCVE es obligatorio");
+
+                var row = await repo.GetProveedorById(id);
+                if (row == null)
+                    return new ApiResponse<RegistroProveedoresDto>(404, 4004, $"Proveedor {id} no existe");
+
+                var data = new RegistroProveedoresDto
+                {
+                    PROCVE = row.PROCVE,
+                    PRONOM = row.PRONOM,
+                    PRODIR = row.PRODIR,
+                    PROCPO = row.PROCPO,
+                    PRODIS = row.PRODIS,
+                    PROPRO = row.PROPRO,
+                    PRODPT = row.PRODPT,
+                    PROPAI = row.PROPAI,
+                    PRORUC = row.PRORUC,
+                    PROSIT = row.PROSIT,
+                    PRORF1 = row.PRORF1,
+                    PROARE = row.PROARE,
+                    CPACVE = row.CPACVE
+                };
+
+                return new ApiResponse<RegistroProveedoresDto>(200, 1000, "Consulta realizada correctamente", data);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<RegistroProveedoresDto>(500, 500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
     }
 }

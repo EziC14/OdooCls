@@ -143,5 +143,92 @@ namespace OdooCls.Infrastucture.Repositorys
                 throw;
             }
         }
+
+        public async Task<List<RegistroProveedor>> GetAllProveedores(int page, int pageSize)
+        {
+            int offset = (page - 1) * pageSize;
+            string query = $@"select PROCVE, PRONOM, PRODIR, PROCPO, PRODIS, PROPRO, PRODPT, PROPAI, PRORUC, PROSIT, PRORF1, PROARE, CPACVE
+                              from {library}.tprov
+                              order by PROCVE
+                              offset {offset} rows fetch next {pageSize} rows only";
+            var result = new List<RegistroProveedor>();
+            using var cn = new OdbcConnection(connectionString);
+            using var cmd = new OdbcCommand(query, cn);
+            await cn.OpenAsync();
+
+            if (!CallLibreria(cn))
+                return result;
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new RegistroProveedor
+                {
+                    PROCVE = reader["PROCVE"]?.ToString() ?? string.Empty,
+                    PRONOM = reader["PRONOM"]?.ToString() ?? string.Empty,
+                    PRODIR = reader["PRODIR"]?.ToString() ?? string.Empty,
+                    PROCPO = reader["PROCPO"]?.ToString() ?? string.Empty,
+                    PRODIS = reader["PRODIS"]?.ToString() ?? string.Empty,
+                    PROPRO = reader["PROPRO"]?.ToString() ?? string.Empty,
+                    PRODPT = reader["PRODPT"]?.ToString() ?? string.Empty,
+                    PROPAI = reader["PROPAI"]?.ToString() ?? string.Empty,
+                    PRORUC = reader["PRORUC"]?.ToString() ?? string.Empty,
+                    PROSIT = reader["PROSIT"]?.ToString() ?? string.Empty,
+                    PRORF1 = reader["PRORF1"]?.ToString() ?? string.Empty,
+                    PROARE = reader["PROARE"]?.ToString() ?? string.Empty,
+                    CPACVE = reader["CPACVE"]?.ToString() ?? string.Empty
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<int> GetTotalProveedoresCount()
+        {
+            string query = $@"select count(*) from {library}.tprov";
+            using var cn = new OdbcConnection(connectionString);
+            using var cmd = new OdbcCommand(query, cn);
+            await cn.OpenAsync();
+
+            if (!CallLibreria(cn))
+                return 0;
+
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result ?? 0);
+        }
+
+        public async Task<RegistroProveedor?> GetProveedorById(string procve)
+        {
+            string query = $@"select PROCVE, PRONOM, PRODIR, PROCPO, PRODIS, PROPRO, PRODPT, PROPAI, PRORUC, PROSIT, PRORF1, PROARE, CPACVE
+                              from {library}.tprov where PROCVE=?";
+            using var cn = new OdbcConnection(connectionString);
+            using var cmd = new OdbcCommand(query, cn);
+            await cn.OpenAsync();
+
+            if (!CallLibreria(cn))
+                return null;
+
+            cmd.Parameters.AddWithValue("@PROCVE", procve);
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+                return null;
+
+            return new RegistroProveedor
+            {
+                PROCVE = reader["PROCVE"]?.ToString() ?? string.Empty,
+                PRONOM = reader["PRONOM"]?.ToString() ?? string.Empty,
+                PRODIR = reader["PRODIR"]?.ToString() ?? string.Empty,
+                PROCPO = reader["PROCPO"]?.ToString() ?? string.Empty,
+                PRODIS = reader["PRODIS"]?.ToString() ?? string.Empty,
+                PROPRO = reader["PROPRO"]?.ToString() ?? string.Empty,
+                PRODPT = reader["PRODPT"]?.ToString() ?? string.Empty,
+                PROPAI = reader["PROPAI"]?.ToString() ?? string.Empty,
+                PRORUC = reader["PRORUC"]?.ToString() ?? string.Empty,
+                PROSIT = reader["PROSIT"]?.ToString() ?? string.Empty,
+                PRORF1 = reader["PRORF1"]?.ToString() ?? string.Empty,
+                PROARE = reader["PROARE"]?.ToString() ?? string.Empty,
+                CPACVE = reader["CPACVE"]?.ToString() ?? string.Empty
+            };
+        }
     }
 }

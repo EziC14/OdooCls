@@ -85,5 +85,75 @@ namespace OdooCls.Application.Services
                 return new ApiResponse<RegistroClientesDto>(500, 500, $"Error interno del servidor: {ex.Message}");
             }
         }
+
+        public async Task<ApiResponse<PaginationResponseDto<RegistroClientesDto>>> GetAllAsync(int page = 1, int pageSize = 20)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1 || pageSize > 100) pageSize = 20;
+
+                var rows = await repo.GetAllClientes(page, pageSize);
+                var totalCount = await repo.GetTotalClientesCount();
+                
+                var data = rows.Select(x => new RegistroClientesDto
+                {
+                    CLICVE = x.CLICVE,
+                    CLINOM = x.CLINOM,
+                    CLIDIR = x.CLIDIR,
+                    CLICPO = x.CLICPO,
+                    CLIDIS = x.CLIDIS,
+                    CLIPRO = x.CLIPRO,
+                    CLIDPT = x.CLIDPT,
+                    CLIPAI = x.CLIPAI,
+                    CLIRUC = x.CLIRUC,
+                    CLISIT = x.CLISIT,
+                    CLILCR = x.CLILCR,
+                    CPACVE = x.CPACVE
+                }).ToList();
+
+                var paginatedData = new PaginationResponseDto<RegistroClientesDto>(data, totalCount, page, pageSize);
+                return new ApiResponse<PaginationResponseDto<RegistroClientesDto>>(200, 1000, "Consulta realizada correctamente", paginatedData);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<PaginationResponseDto<RegistroClientesDto>>(500, 500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<RegistroClientesDto>> GetByIdAsync(string id)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(id))
+                    return new ApiResponse<RegistroClientesDto>(400, 3003, "CLICVE es obligatorio");
+
+                var row = await repo.GetClienteById(id);
+                if (row == null)
+                    return new ApiResponse<RegistroClientesDto>(404, 3004, $"Cliente {id} no existe");
+
+                var data = new RegistroClientesDto
+                {
+                    CLICVE = row.CLICVE,
+                    CLINOM = row.CLINOM,
+                    CLIDIR = row.CLIDIR,
+                    CLICPO = row.CLICPO,
+                    CLIDIS = row.CLIDIS,
+                    CLIPRO = row.CLIPRO,
+                    CLIDPT = row.CLIDPT,
+                    CLIPAI = row.CLIPAI,
+                    CLIRUC = row.CLIRUC,
+                    CLISIT = row.CLISIT,
+                    CLILCR = row.CLILCR,
+                    CPACVE = row.CPACVE
+                };
+
+                return new ApiResponse<RegistroClientesDto>(200, 1000, "Consulta realizada correctamente", data);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<RegistroClientesDto>(500, 500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
     }
 }

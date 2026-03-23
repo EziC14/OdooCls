@@ -84,5 +84,85 @@ namespace OdooCls.Application.Services
                 return new ApiResponse<RegistroAlmacenesDto>(500, 500, $"Error interno del servidor: {ex.Message}");
             }
         }
+
+        public async Task<ApiResponse<PaginationResponseDto<RegistroAlmacenesDto>>> GetAllAsync(int page = 1, int pageSize = 20)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1 || pageSize > 100) pageSize = 20;
+
+                var rows = await repo.GetAllAlmacenes(page, pageSize);
+                var totalCount = await repo.GetTotalAlmacenesCount();
+                
+                var data = rows.Select(x => new RegistroAlmacenesDto
+                {
+                    ALCODI = x.ALCODI,
+                    ALNOMB = x.ALNOMB,
+                    ALRESP = x.ALRESP,
+                    ALVALO = x.ALVALO,
+                    ALSITU = x.ALSITU,
+                    ALINGR = x.ALINGR,
+                    ALSALI = x.ALSALI,
+                    ALTRAN = x.ALTRAN,
+                    ALDIRE = x.ALDIRE,
+                    ALCANT = x.ALCANT,
+                    ALDISD = x.ALDISD,
+                    ALUBGD = x.ALUBGD,
+                    ALCPLD = x.ALCPLD,
+                    ALREF1 = x.ALREF1,
+                    ALREF2 = x.ALREF2,
+                    ALFLG1 = x.ALFLG1,
+                    ALFLG2 = x.ALFLG2
+                }).ToList();
+
+                var paginatedData = new PaginationResponseDto<RegistroAlmacenesDto>(data, totalCount, page, pageSize);
+                return new ApiResponse<PaginationResponseDto<RegistroAlmacenesDto>>(200, 1000, "Consulta realizada correctamente", paginatedData);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<PaginationResponseDto<RegistroAlmacenesDto>>(500, 500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        public async Task<ApiResponse<RegistroAlmacenesDto>> GetByIdAsync(string id)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(id))
+                    return new ApiResponse<RegistroAlmacenesDto>(400, 5003, "ALCODI es obligatorio");
+
+                var row = await repo.GetAlmacenById(id);
+                if (row == null)
+                    return new ApiResponse<RegistroAlmacenesDto>(404, 5004, $"Almacén {id} no existe");
+
+                var data = new RegistroAlmacenesDto
+                {
+                    ALCODI = row.ALCODI,
+                    ALNOMB = row.ALNOMB,
+                    ALRESP = row.ALRESP,
+                    ALVALO = row.ALVALO,
+                    ALSITU = row.ALSITU,
+                    ALINGR = row.ALINGR,
+                    ALSALI = row.ALSALI,
+                    ALTRAN = row.ALTRAN,
+                    ALDIRE = row.ALDIRE,
+                    ALCANT = row.ALCANT,
+                    ALDISD = row.ALDISD,
+                    ALUBGD = row.ALUBGD,
+                    ALCPLD = row.ALCPLD,
+                    ALREF1 = row.ALREF1,
+                    ALREF2 = row.ALREF2,
+                    ALFLG1 = row.ALFLG1,
+                    ALFLG2 = row.ALFLG2
+                };
+
+                return new ApiResponse<RegistroAlmacenesDto>(200, 1000, "Consulta realizada correctamente", data);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<RegistroAlmacenesDto>(500, 500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
     }
 }
