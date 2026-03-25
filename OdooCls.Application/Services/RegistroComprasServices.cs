@@ -104,9 +104,15 @@ namespace OdooCls.Application.Services
                 rcdto.RCMVAL = "C";
                 rcdto.RCCIM1 = "4011001";
                 rcdto.RCMIM1 = "C";
-                rcdto.RCCPVT = "4212001";
+                // rcdto.RCCPVT = "4212001";
                 rcdto.RCMPVT = "A";
-                rcdto.RCCOST = "014100002";
+                rcdto.RCCOST = "001040200";
+
+                // Clasificacion de B/S siuempre en 1 para compras RCCBSA
+
+                rcdto.RCCBSA = "1";
+
+
 
                 RegistroCompras compras = RegistroComprasMapper.DtoToEntity(rcdto);
                 try

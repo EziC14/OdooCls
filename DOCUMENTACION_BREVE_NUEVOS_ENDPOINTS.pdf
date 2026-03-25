@@ -1,0 +1,190 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 2777 >>
+stream
+BT
+/F1 10 Tf
+50 790 Td
+14 TL
+(Documentaci??n breve - Nuevos endpoints GET paginados) Tj
+T*
+T*
+(??Qu?? cambi???) Tj
+T*
+(Se agregaron mejoras en los endpoints `GET /all` para que sean paginados y respondan m??s r??pido.) Tj
+T*
+T*
+(Antes: devolv??an todos los registros.  ) Tj
+T*
+(Ahora: devuelven por p??ginas con `page` y `pageSize`.) Tj
+T*
+T*
+T*
+T*
+(Endpoints nuevos/actualizados) Tj
+T*
+T*
+(- `GET /api/RegistroAlmacenes/all?page=1&pageSize=20`) Tj
+T*
+(- `GET /api/RegistroArticulos/all?page=1&pageSize=20`) Tj
+T*
+(- `GET /api/RegistroClientes/all?page=1&pageSize=20`) Tj
+T*
+(- `GET /api/RegistroProveedores/all?page=1&pageSize=20`) Tj
+T*
+T*
+(> Tambi??n siguen disponibles los `GET /{id}` de cada m??dulo.) Tj
+T*
+T*
+(Consulta por UUID/ID) Tj
+T*
+T*
+(Si necesitas buscar un registro espec??fico por identificador \(UUID/ID\), usa:) Tj
+T*
+T*
+(- `GET /api/RegistroAlmacenes/{id}`) Tj
+T*
+(- `GET /api/RegistroArticulos/{id}`) Tj
+T*
+(- `GET /api/RegistroClientes/{id}`) Tj
+T*
+(- `GET /api/RegistroProveedores/{id}`) Tj
+T*
+T*
+(Ejemplo:) Tj
+T*
+T*
+(```bash) Tj
+T*
+(curl -X GET "http://localhost:5000/api/RegistroAlmacenes/ALM001" \\) Tj
+T*
+(  -H "Authorization: Bearer TU_TOKEN") Tj
+T*
+(```) Tj
+T*
+T*
+T*
+T*
+(Requisitos) Tj
+T*
+T*
+(- Enviar token Bearer en el header:) Tj
+T*
+(  - `Authorization: Bearer TU_TOKEN`) Tj
+T*
+T*
+T*
+T*
+(Par??metros de paginaci??n) Tj
+T*
+T*
+(- `page`: n??mero de p??gina \(inicia en 1\)) Tj
+T*
+(- `pageSize`: cantidad de registros por p??gina) Tj
+T*
+(  - Valor recomendado: `20`) Tj
+T*
+(  - M??ximo permitido: `100`) Tj
+T*
+T*
+(Si env??as valores inv??lidos, el servicio ajusta autom??ticamente a valores seguros.) Tj
+T*
+T*
+T*
+T*
+(Ejemplo r??pido \(cURL\)) Tj
+T*
+T*
+(```bash) Tj
+T*
+(curl -X GET "http://localhost:5000/api/RegistroAlmacenes/all?page=1&pageSize=20" \\) Tj
+T*
+(  -H "Authorization: Bearer TU_TOKEN") Tj
+T*
+(```) Tj
+T*
+T*
+T*
+T*
+(Estructura de respuesta) Tj
+T*
+T*
+(```json) Tj
+T*
+({) Tj
+T*
+(  "httpStatusCode": 200,) Tj
+T*
+(  "code": 1000,) Tj
+T*
+(  "message": "Consulta realizada correctamente",) Tj
+T*
+(  "data": {) Tj
+T*
+(    "data": [) Tj
+T*
+(      { "ALCODI": "001", "ALNOMB": "ALMACEN CENTRAL" }) Tj
+T*
+(    ],) Tj
+T*
+(    "totalCount": 250,) Tj
+T*
+(    "pageNumber": 1,) Tj
+T*
+(    "pageSize": 20,) Tj
+T*
+(    "totalPages": 13,) Tj
+T*
+(    "hasNextPage": true,) Tj
+T*
+(    "hasPreviousPage": false) Tj
+T*
+(  }) Tj
+T*
+(}) Tj
+T*
+(```) Tj
+T*
+T*
+T*
+T*
+(Recomendaci??n de uso en frontend) Tj
+T*
+T*
+(1. Cargar siempre con `page=1&pageSize=20`.) Tj
+T*
+(2. Usar `hasNextPage` y `hasPreviousPage` para botones "Siguiente/Anterior".) Tj
+T*
+(3. No volver a usar `GET /all` sin par??metros.) Tj
+T*
+T*
+T*
+T*
+(Beneficio principal) Tj
+T*
+T*
+(Con paginaci??n, la consulta evita timeouts por alto volumen y mejora notablemente el tiempo de respuesta.) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n `n0000000058 00000 n `n0000000115 00000 n `n0000000241 00000 n `n0000000311 00000 n `ntrailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+3139
+%%EOF
