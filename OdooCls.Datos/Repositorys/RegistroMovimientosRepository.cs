@@ -137,41 +137,38 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 using var cn = new OdbcConnection(connectionString);
                 await cn.OpenAsync();
-                
-                using var transaction = cn.BeginTransaction();
-                try
-                {
-                    // 1. Obtener el correlativo actual con lock
-                    using var cmdSelect = new OdbcCommand(querySelect, cn, transaction);
-                    cmdSelect.Parameters.AddWithValue("@PVCODI", puntoVenta);
-                    var result = await cmdSelect.ExecuteScalarAsync();
-                    
-                    if (result == null || result == DBNull.Value)
-                    {
-                        transaction.Rollback();
-                        return 0;
-                    }
-                    
-                    int correlativo = Convert.ToInt32(result);
-                    int nuevoPedido = correlativo + 1;
-                    
-                    // 2. Actualizar el correlativo en TPTOV (incrementar en 1)
-                    using var cmdUpdate = new OdbcCommand(queryUpdate, cn, transaction);
-                    cmdUpdate.Parameters.AddWithValue("@PVCODI", puntoVenta);
-                    await cmdUpdate.ExecuteNonQueryAsync();
-                    
-                    transaction.Commit();
-                    return nuevoPedido;
-                }
-                catch
-                {
-                    transaction.Rollback();
+
+                using var cmdExiste = new OdbcCommand($@"select count(1) from {library}.tptov where PVCODI=?", cn);
+                cmdExiste.Parameters.AddWithValue("@PVCODI", puntoVenta);
+                var existe = Convert.ToInt32(await cmdExiste.ExecuteScalarAsync());
+
+                if (existe == 0)
                     return 0;
-                }
+                
+
+                using var cmdSelect = new OdbcCommand(querySelect, cn);
+                cmdSelect.Parameters.AddWithValue("@PVCODI", puntoVenta);
+                var result = await cmdSelect.ExecuteScalarAsync();
+
+                if (result == null || result == DBNull.Value)
+                    return 0;
+                
+
+                int correlativo = Convert.ToInt32(result);
+                int nuevoPedido = correlativo + 1;
+
+                using var cmdUpdate = new OdbcCommand(queryUpdate, cn);
+                cmdUpdate.Parameters.AddWithValue("@PVCODI", puntoVenta);
+                int filas = await cmdUpdate.ExecuteNonQueryAsync();
+
+                if (filas == 0)
+                    return 0;
+                
+
+                return nuevoPedido;
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"Error al obtener correlativo de pedido: {ex.Message}");
                 return 0;
             }
         }
@@ -185,41 +182,38 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 using var cn = new OdbcConnection(connectionString);
                 await cn.OpenAsync();
-                
-                using var transaction = cn.BeginTransaction();
-                try
-                {
-                    // 1. Obtener el correlativo actual con lock
-                    using var cmdSelect = new OdbcCommand(querySelect, cn, transaction);
-                    cmdSelect.Parameters.AddWithValue("@PVCODI", puntoVenta);
-                    var result = await cmdSelect.ExecuteScalarAsync();
-                    
-                    if (result == null || result == DBNull.Value)
-                    {
-                        transaction.Rollback();
-                        return 0;
-                    }
-                    
-                    int correlativo = Convert.ToInt32(result);
-                    int nuevaNC = correlativo + 1;
-                    
-                    // 2. Actualizar el correlativo en TPTOV (incrementar en 1)
-                    using var cmdUpdate = new OdbcCommand(queryUpdate, cn, transaction);
-                    cmdUpdate.Parameters.AddWithValue("@PVCODI", puntoVenta);
-                    await cmdUpdate.ExecuteNonQueryAsync();
-                    
-                    transaction.Commit();
-                    return nuevaNC;
-                }
-                catch
-                {
-                    transaction.Rollback();
+
+                using var cmdExiste = new OdbcCommand($@"select count(1) from {library}.tptov where PVCODI=?", cn);
+                cmdExiste.Parameters.AddWithValue("@PVCODI", puntoVenta);
+                var existe = Convert.ToInt32(await cmdExiste.ExecuteScalarAsync());
+
+                if (existe == 0)
                     return 0;
-                }
+                
+
+                using var cmdSelect = new OdbcCommand(querySelect, cn);
+                cmdSelect.Parameters.AddWithValue("@PVCODI", puntoVenta);
+                var result = await cmdSelect.ExecuteScalarAsync();
+
+                if (result == null || result == DBNull.Value)
+                    return 0;
+                
+
+                int correlativo = Convert.ToInt32(result);
+                int nuevaNC = correlativo + 1;
+
+                using var cmdUpdate = new OdbcCommand(queryUpdate, cn);
+                cmdUpdate.Parameters.AddWithValue("@PVCODI", puntoVenta);
+                int filas = await cmdUpdate.ExecuteNonQueryAsync();
+
+                if (filas == 0)
+                    return 0;
+                
+
+                return nuevaNC;
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"Error al obtener correlativo de nota de crédito: {ex.Message}");
                 return 0;
             }
         }
@@ -449,17 +443,31 @@ namespace OdooCls.Infrastucture.Repositorys
                 
                 
                 cmd.CommandType = CommandType.Text;
+                decimal pdcan1 = Math.Round(d.PDCAN1, 3, MidpointRounding.AwayFromZero);
+                decimal pdcant = Math.Round(d.PDCANT, 3, MidpointRounding.AwayFromZero);
+                decimal pdeds2 = Math.Round(d.PDEDS2, 6, MidpointRounding.AwayFromZero);
+                decimal pdeigv = Math.Round(d.PDEIGV, 6, MidpointRounding.AwayFromZero);
+                decimal pdepvt = Math.Round(d.PDEPVT, 6, MidpointRounding.AwayFromZero);
+                decimal pdevva = Math.Round(d.PDEVVA, 6, MidpointRounding.AwayFromZero);
+                decimal pdevvi = Math.Round(d.PDEVVI, 6, MidpointRounding.AwayFromZero);
+                decimal pdnds2 = Math.Round(d.PDNDS2, 6, MidpointRounding.AwayFromZero);
+                decimal pdnigv = Math.Round(d.PDNIGV, 6, MidpointRounding.AwayFromZero);
+                decimal pdnpvt = Math.Round(d.PDNPVT, 6, MidpointRounding.AwayFromZero);
+                decimal pdnvva = Math.Round(d.PDNVVA, 6, MidpointRounding.AwayFromZero);
+                decimal pdnvvi = Math.Round(d.PDNVVI, 6, MidpointRounding.AwayFromZero);
+                decimal pdunit = Math.Round(d.PDUNIT, 4, MidpointRounding.AwayFromZero);
+
                 cmd.Parameters.AddWithValue("@PDARTI", d.PDARTI);
-                cmd.Parameters.AddWithValue("@PDCAN1", d.PDCAN1);
-                cmd.Parameters.AddWithValue("@PDCANT", d.PDCANT);
+                cmd.Parameters.AddWithValue("@PDCAN1", pdcan1);
+                cmd.Parameters.AddWithValue("@PDCANT", pdcant);
                 cmd.Parameters.AddWithValue("@PDCEQU", d.PDCEQU);
                 cmd.Parameters.AddWithValue("@PDCLIE", d.PDCLIE);
                 cmd.Parameters.AddWithValue("@PDCMOA", d.PDCMOA);
-                cmd.Parameters.AddWithValue("@PDEDS2", d.PDEDS2);
-                cmd.Parameters.AddWithValue("@PDEIGV", d.PDEIGV);
-                cmd.Parameters.AddWithValue("@PDEPVT", d.PDEPVT);
-                cmd.Parameters.AddWithValue("@PDEVVA", d.PDEVVA);
-                cmd.Parameters.AddWithValue("@PDEVVI", d.PDEVVI);
+                cmd.Parameters.AddWithValue("@PDEDS2", pdeds2);
+                cmd.Parameters.AddWithValue("@PDEIGV", pdeigv);
+                cmd.Parameters.AddWithValue("@PDEPVT", pdepvt);
+                cmd.Parameters.AddWithValue("@PDEVVA", pdevva);
+                cmd.Parameters.AddWithValue("@PDEVVI", pdevvi);
                 cmd.Parameters.AddWithValue("@PDFABO", d.PDFABO);
                 cmd.Parameters.AddWithValue("@PDFBMA", d.PDFBMA);
                 cmd.Parameters.AddWithValue("@PDFECF", d.PDFECF);
@@ -478,12 +486,12 @@ namespace OdooCls.Infrastucture.Repositorys
                 cmd.Parameters.AddWithValue("@PDMONE", d.PDMONE);
                 cmd.Parameters.AddWithValue("@PDNART", d.PDNART);
                 cmd.Parameters.AddWithValue("@PDNCOT", d.PDNCOT);
-                cmd.Parameters.AddWithValue("@PDNDS2", d.PDNDS2);
-                cmd.Parameters.AddWithValue("@PDNIGV", d.PDNIGV);
-                cmd.Parameters.AddWithValue("@PDNPVT", d.PDNPVT);
+                cmd.Parameters.AddWithValue("@PDNDS2", pdnds2);
+                cmd.Parameters.AddWithValue("@PDNIGV", pdnigv);
+                cmd.Parameters.AddWithValue("@PDNPVT", pdnpvt);
                 cmd.Parameters.AddWithValue("@PDNUME", d.PDNUME);
-                cmd.Parameters.AddWithValue("@PDNVVA", d.PDNVVA);
-                cmd.Parameters.AddWithValue("@PDNVVI", d.PDNVVI);
+                cmd.Parameters.AddWithValue("@PDNVVA", pdnvva);
+                cmd.Parameters.AddWithValue("@PDNVVI", pdnvvi);
                 cmd.Parameters.AddWithValue("@PDOBSA", d.PDOBSA);
                 cmd.Parameters.AddWithValue("@PDPVTA", d.PDPVTA);
                 cmd.Parameters.AddWithValue("@PDREF0", d.PDREF0);
@@ -503,7 +511,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 cmd.Parameters.AddWithValue("@PDSITD", d.PDSITD);
                 cmd.Parameters.AddWithValue("@PDTDOC", d.PDTDOC);
                 cmd.Parameters.AddWithValue("@PDTVTA", d.PDTVTA);
-                cmd.Parameters.AddWithValue("@PDUNIT", d.PDUNIT);
+                cmd.Parameters.AddWithValue("@PDUNIT", pdunit);
                 cmd.Parameters.AddWithValue("@PDUNVT", d.PDUNVT);
                 cmd.Parameters.AddWithValue("@PDUSAF", d.PDUSAF);
                 cmd.Parameters.AddWithValue("@PDUSAG", d.PDUSAG);

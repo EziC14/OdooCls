@@ -24,19 +24,24 @@ namespace OdooCls.Application.Services
                 if (dto == null)
                     return new ApiResponse<RegistroMovimientosDto>(400, 6001, "No se recibieron datos en el archivo");
 
+                if (dto.Movimiento == null)
+                    return new ApiResponse<RegistroMovimientosDto>(400, 6001, "El bloque Movimiento es obligatorio");
+
                 // VALIDAR CONSISTENCIA SEGÚN EL TIPO
                 var validacion = await ValidarConsistenciaAsync(dto);
                 if (validacion.HttpStatusCode != 200)
                     return validacion;
 
+                var movimiento = dto.Movimiento;
+
                 // AUTO-GENERAR NÚMERO DE VALE (MHCOMP) DESDE TALMA
-                int nuevoVale = await repo.ObtenerYActualizarCorrelativo(dto.Movimiento.MHALMA, dto.Movimiento.MHCMOV);
+                int nuevoVale = await repo.ObtenerYActualizarCorrelativo(movimiento.MHALMA, movimiento.MHCMOV);
                 if (nuevoVale == 0)
                     return new ApiResponse<RegistroMovimientosDto>(500, 6001, 
-                        $"Error al generar número de vale desde TALMA para almacén {dto.Movimiento.MHALMA}");
+                        $"Error al generar número de vale desde TALMA para almacén {movimiento.MHALMA}");
                 
                 // Asignar el vale generado al movimiento y a todos los detalles
-                dto.Movimiento.MHCOMP = nuevoVale;
+                movimiento.MHCOMP = nuevoVale;
                 foreach (var detalle in dto.MovimientoDetails)
                 {
                     detalle.MDCOMP = nuevoVale;
@@ -48,8 +53,10 @@ namespace OdooCls.Application.Services
                     int puntoVenta = dto.Pedido.PHPVTA;
                     int nuevoPedido = await repo.ObtenerYActualizarCorrelativoPedido(puntoVenta);
                     if (nuevoPedido == 0)
+                    {
                         return new ApiResponse<RegistroMovimientosDto>(500, 6002, 
                             $"Error al generar número de pedido desde TPTOV para punto de venta {puntoVenta}");
+                    }
                     
                     // Asignar el número de pedido generado
                     dto.Pedido.PHNUME = nuevoPedido;
@@ -68,8 +75,10 @@ namespace OdooCls.Application.Services
                     int puntoVenta = dto.NotaCredito.NHPVTA;
                     int nuevaNC = await repo.ObtenerYActualizarCorrelativoNotaCredito(puntoVenta);
                     if (nuevaNC == 0)
+                    {
                         return new ApiResponse<RegistroMovimientosDto>(500, 6002, 
                             $"Error al generar número de nota de crédito desde TPTOV para punto de venta {puntoVenta}");
+                    }
                     
                     // Asignar el número de NC generado
                     dto.NotaCredito.NHNUME = nuevaNC;
@@ -88,13 +97,13 @@ namespace OdooCls.Application.Services
                 AsignarReferencias(dto);
 
                 // 1. INSERT TMOVH (Header Movimiento) - SIEMPRE
-                var movimientoHeader = RegistroMovimientosMapper.MovimientoHeaderToEntity(dto.Movimiento);
+                var movimientoHeader = RegistroMovimientosMapper.MovimientoHeaderToEntity(movimiento);
                 if (!await repo.InsertTmovh(movimientoHeader))
                     return new ApiResponse<RegistroMovimientosDto>(500, 6003, "Error al insertar TMOVH (Movimiento Header)");
 
                 // 2. VERIFICAR SI ES TRANSFERENCIA (solo tipo 99)
-                bool esTransferencia = repo.EsTransferencia(dto.Movimiento.MHTMOV);
-                string almacenDestino = dto.Movimiento.MHHRE1; // El almacén destino se envía en MHHRE1
+                bool esTransferencia = repo.EsTransferencia(movimiento.MHTMOV);
+                string almacenDestino = movimiento.MHHRE1; // El almacén destino se envía en MHHRE1
 
                 // Validar almacén destino para transferencias
                 if (esTransferencia && string.IsNullOrEmpty(almacenDestino))
@@ -111,7 +120,7 @@ namespace OdooCls.Application.Services
                             $"Error al insertar TMOVD (Movimiento Detail) para artículo {detalle.MDCOAR}");
 
                     // 2a.2. ⭐ ACTUALIZAR STOCK en TSALM
-                    if (esTransferencia && dto.Movimiento.MHCMOV == "S" && !string.IsNullOrEmpty(almacenDestino))
+                    if (esTransferencia && movimiento.MHCMOV == "S" && !string.IsNullOrEmpty(almacenDestino))
                     {
                         // ✅ SOLO descontar en origen
                         var stockOkOrigen = await repo.ActualizarStock(
@@ -143,7 +152,7 @@ namespace OdooCls.Application.Services
                 // 2b. (Eliminado) No existe valorización en este sistema.
 
                 // 2c. ⭐ SI ES TRANSFERENCIA (tipo 99): Generar movimiento de INGRESO automático
-                if (esTransferencia && dto.Movimiento.MHCMOV == "S" && !string.IsNullOrEmpty(almacenDestino))
+                if (esTransferencia && movimiento.MHCMOV == "S" && !string.IsNullOrEmpty(almacenDestino))
                 {
                     var transferOk = await ProcesarTransferencia(dto, almacenDestino);
                     if (!transferOk)
