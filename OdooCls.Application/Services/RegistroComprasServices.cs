@@ -100,13 +100,15 @@ namespace OdooCls.Application.Services
                 rcdto.RCRCXP = rcxp;
 
                 // Valores fijos requeridos por el sistema
-                rcdto.RCCVAL = "6011003";
-                rcdto.RCMVAL = "C";
-                rcdto.RCCIM1 = "4011001";
-                rcdto.RCMIM1 = "C";
+                //rcdto.RCCVAL = "6011003";
+                //rcdto.RCMVAL = "C";
+                //rcdto.RCCIM1 = "4011001";
+                //rcdto.RCMIM1 = "C";
                 // rcdto.RCCPVT = "4212001";
-                rcdto.RCMPVT = "A";
-                rcdto.RCCOST = "001040200";
+                //rcdto.RCMPVT = "A";
+
+                // CENTRO DE COSTOS FIJO PARA COMPRAS, SEGUN REQUERIMIENTO DE SISTEMA
+                //rcdto.RCCOST = "014100002";
 
                 // Clasificacion de B/S siuempre en 1 para compras RCCBSA
 
