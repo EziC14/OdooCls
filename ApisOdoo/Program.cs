@@ -9,6 +9,30 @@ using OdooCls.Infrastucture.Repositorys;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (string.IsNullOrWhiteSpace(builder.Configuration["Authentication:Library"]))
+{
+    var envPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", ".env"));
+    if (File.Exists(envPath))
+    {
+        foreach (var line in File.ReadAllLines(envPath))
+        {
+            var trimmed = line.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#") || !trimmed.Contains('='))
+                continue;
+
+            var idx = trimmed.IndexOf('=');
+            var key = trimmed[..idx].Trim();
+            var value = trimmed[(idx + 1)..].Trim().Trim('"');
+
+            if (key.Equals("LIBRERIA", StringComparison.OrdinalIgnoreCase) ||
+                key.Equals("Authentication__Library", StringComparison.OrdinalIgnoreCase))
+            {
+                builder.Configuration["Authentication:Library"] = value;
+            }
+        }
+    }
+}
+
 // Add services to the container.
 
 builder.Services.AddControllers();

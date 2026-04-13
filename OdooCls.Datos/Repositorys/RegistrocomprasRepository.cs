@@ -70,30 +70,18 @@ namespace OdooCls.Infrastucture.Repositorys
                     if (!CallLibreria(connection))
                         return 0;
 
-                    using var cmd = new OdbcCommand($"{{ CALL {library}.SP_GET_NEXT_TTABD(?, ?) }}", connection)
+                    var activeLibrary = library?.Trim();
+                    if (string.IsNullOrWhiteSpace(activeLibrary))
+                        throw new InvalidOperationException("Authentication:Library no está configurada.");
+
+                    try
                     {
-                        CommandType = CommandType.StoredProcedure
-                    };
-
-                    // IN v_period CHAR(6)
-                    var pIn = new OdbcParameter("@v_period", OdbcType.Char, 6)
+                        return ExecuteGetNextCorr(connection, activeLibrary, periodo);
+                    }
+                    catch (OdbcException ex) when (ex.Message.Contains("SQL0204"))
                     {
-                        Direction = ParameterDirection.Input,
-                        Value = periodo
-                    };
-                    cmd.Parameters.Add(pIn);
-
-                    // OUT next_corr: IBM i Packed Decimal, se lee como Char para evitar ERROR 22018
-                    var pOut = new OdbcParameter("@next_corr", OdbcType.Char, 15)
-                    {
-                        Direction = ParameterDirection.Output
-                    };
-                    cmd.Parameters.Add(pOut);
-
-                    cmd.ExecuteNonQuery();
-
-                    var rawValue = pOut.Value?.ToString()?.Trim() ?? "0";
-                    return int.TryParse(rawValue, out int result) ? result : 0;
+                        return GetNextCorrFromTables(connection, activeLibrary, periodo);
+                    }
                 }
             }
             catch (Exception ex)
@@ -101,6 +89,63 @@ namespace OdooCls.Infrastucture.Repositorys
                 Console.WriteLine($"Error GetNextCorr: {ex.Message}");
                 throw new Exception($"[GetNextCorr] {ex.Message}", ex);
             }
+        }
+
+        private static int ExecuteGetNextCorr(OdbcConnection connection, string schema, string periodo)
+        {
+            using var cmd = new OdbcCommand($"{{ CALL {schema}.SP_GET_NEXT_TTABD(?, ?) }}", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            var pIn = new OdbcParameter("@v_period", OdbcType.Char, 6)
+            {
+                Direction = ParameterDirection.Input,
+                Value = periodo
+            };
+            cmd.Parameters.Add(pIn);
+
+            var pOut = new OdbcParameter("@next_corr", OdbcType.Char, 15)
+            {
+                Direction = ParameterDirection.Output
+            };
+            cmd.Parameters.Add(pOut);
+
+            cmd.ExecuteNonQuery();
+
+            var rawValue = pOut.Value?.ToString()?.Trim() ?? "0";
+            return int.TryParse(rawValue, out int result) ? result : 0;
+        }
+
+        private static int GetNextCorrFromTables(OdbcConnection connection, string schema, string periodo)
+        {
+            if (string.IsNullOrWhiteSpace(periodo) || periodo.Length != 6)
+                throw new InvalidOperationException("Periodo inválido para correlativo local. Formato esperado: yyyyMM.");
+
+            int year = int.Parse(periodo.Substring(0, 4));
+            int month = int.Parse(periodo.Substring(4, 2));
+
+            string sql = $@"
+                SELECT COALESCE(MAX(CORR), 0) + 1
+                FROM (
+                    SELECT INT(RIGHT(TRIM(RCRCXP), 5)) AS CORR
+                    FROM {schema}.TREGC
+                    WHERE RCEJER = ? AND RCPERI = ?
+                    UNION ALL
+                    SELECT INT(RIGHT(TRIM(XPRCXP), 5)) AS CORR
+                    FROM {schema}.TCTXP
+                    WHERE XPEJER = ? AND XPPERI = ?
+                ) X";
+
+            using var cmd = new OdbcCommand(sql, connection);
+            cmd.Parameters.AddWithValue("@RCEJER", year);
+            cmd.Parameters.AddWithValue("@RCPERI", month);
+            cmd.Parameters.AddWithValue("@XPEJER", year);
+            cmd.Parameters.AddWithValue("@XPPERI", month);
+
+            var value = cmd.ExecuteScalar();
+            int corr = Convert.ToInt32(value ?? 1);
+            return corr <= 0 ? 1 : corr;
         }
 
         public async Task<bool> InsertTregc(RegistroCompras registro)
@@ -188,7 +233,6 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public async Task<bool> InsertTregcAndCtxp(RegistroCompras registro)
         {
-            Console.WriteLine($"[RC] InsertTregcAndCtxp inicio | EJER={registro.RCEJER} PERI={registro.RCPERI} TDOC={registro.RCTDOC} NDOC={registro.RCNDOC} RCRCXP={registro.RCRCXP} PROV={registro.RCPROV} MONE={registro.RCMONE} VALV={registro.RCVALV} IMP1={registro.RCIMP1} PVT={registro.RCPVTA}");
             string queryTregc = $@"insert into {library}.tregc (
             RCEJER,RCPERI,RCTDOC,RCNDOC,RCFECH,RCRCXP,RCCPRO,RCPROV,RCRUC,RCARTI,RCMONE,RCTCAM,RCVALV,RCCVAL,RCMVAL,RCVALI,
             RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
@@ -204,7 +248,6 @@ namespace OdooCls.Infrastucture.Repositorys
 
                 using (var cmdTregc = new OdbcCommand(queryTregc, cn))
                 {
-                    Console.WriteLine($"[RC] Insertando TREGC | RCEJER={registro.RCEJER} RCPERI={registro.RCPERI} RCTDOC={registro.RCTDOC} RCNDOC={registro.RCNDOC} RCRCXP={registro.RCRCXP}");
                     cmdTregc.CommandType = CommandType.Text;
                     cmdTregc.Parameters.AddWithValue("@RCEJER", registro.RCEJER);
                     cmdTregc.Parameters.AddWithValue("@RCPERI", registro.RCPERI);
@@ -250,14 +293,11 @@ namespace OdooCls.Infrastucture.Repositorys
                     cmdTregc.Parameters.AddWithValue("@RCCBSA", Trunc(registro.RCCBSA, 1));
 
                     var rowsTregc = await cmdTregc.ExecuteNonQueryAsync();
-                    Console.WriteLine($"[RC] TREGC filas afectadas={rowsTregc}");
                     if (rowsTregc <= 0)
                         return false;
                 }
 
-                Console.WriteLine($"[RC] Insertando TCTXP | EJER={registro.RCEJER} PERI={registro.RCPERI} TDOC={registro.RCTDOC} NDOC={registro.RCNDOC} RCRCXP={registro.RCRCXP}");
                 await InsertCtxpInConnection(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC);
-                Console.WriteLine($"[RC] InsertTregcAndCtxp OK | EJER={registro.RCEJER} PERI={registro.RCPERI} TDOC={registro.RCTDOC} NDOC={registro.RCNDOC} RCRCXP={registro.RCRCXP}");
                 return true;
             }
             catch (Exception ex)
@@ -271,7 +311,6 @@ namespace OdooCls.Infrastucture.Repositorys
                 }
                 catch { }
 
-                Console.WriteLine($"[RC] ERROR InsertTregcAndCtxp | EJER={registro.RCEJER} PERI={registro.RCPERI} TDOC={registro.RCTDOC} NDOC={registro.RCNDOC} RCRCXP={registro.RCRCXP} | {ex.Message}");
                 throw new Exception($"[InsertTregcAndCtxp] {ex.Message}", ex);
             }
         }
@@ -297,16 +336,51 @@ namespace OdooCls.Infrastucture.Repositorys
 
             using OdbcCommand cmdCtxp = new OdbcCommand(queryCtxp, cn);
             cmdCtxp.CommandType = CommandType.Text;
-            Console.WriteLine($"[RC] Preparando TCTXP | EJER={ejercicio} PERI={mes} TDOC={tipodoc} NDOC={nrodoc}");
             cmdCtxp.Parameters.AddWithValue("@RCEJER", ejercicio);
             cmdCtxp.Parameters.AddWithValue("@RCPERI", mes);
             cmdCtxp.Parameters.AddWithValue("@RCTDOC", Trunc(tipodoc, 2));
             cmdCtxp.Parameters.AddWithValue("@RCNDOC", Trunc(nrodoc, 15));
 
-            var rowsCtxp = await cmdCtxp.ExecuteNonQueryAsync();
-            Console.WriteLine($"[RC] TCTXP filas afectadas={rowsCtxp} | EJER={ejercicio} PERI={mes} TDOC={tipodoc} NDOC={nrodoc}");
-            if (rowsCtxp <= 0)
-                throw new Exception("No se insertaron filas en TCTXP");
+            try
+            {
+                var rowsCtxp = await cmdCtxp.ExecuteNonQueryAsync();
+                if (rowsCtxp <= 0)
+                    throw new Exception("No se insertaron filas en TCTXP");
+            }
+            catch (OdbcException ex) when (ex.Message.Contains("SQL0803"))
+            {
+                string rcxp = "";
+                using (var cmdRc = new OdbcCommand($"SELECT COALESCE(MAX(RCRCXP), '') FROM {library}.TREGC WHERE RCEJER=? AND RCPERI=? AND RCTDOC=? AND RCNDOC=?", cn))
+                {
+                    cmdRc.Parameters.AddWithValue("@RCEJER", ejercicio);
+                    cmdRc.Parameters.AddWithValue("@RCPERI", mes);
+                    cmdRc.Parameters.AddWithValue("@RCTDOC", Trunc(tipodoc, 2));
+                    cmdRc.Parameters.AddWithValue("@RCNDOC", Trunc(nrodoc, 15));
+                    rcxp = Convert.ToString(await cmdRc.ExecuteScalarAsync()) ?? "";
+                }
+
+                int countDoc = 0;
+                int countRcxp = 0;
+
+                using (var cmdDoc = new OdbcCommand($"SELECT COUNT(*) FROM {library}.TCTXP WHERE XPEJER=? AND XPPERI=? AND XPTDOC=? AND XPNDOC=?", cn))
+                {
+                    cmdDoc.Parameters.AddWithValue("@XPEJER", ejercicio);
+                    cmdDoc.Parameters.AddWithValue("@XPPERI", mes);
+                    cmdDoc.Parameters.AddWithValue("@XPTDOC", Trunc(tipodoc, 2));
+                    cmdDoc.Parameters.AddWithValue("@XPNDOC", Trunc(nrodoc, 15));
+                    countDoc = Convert.ToInt32(await cmdDoc.ExecuteScalarAsync() ?? 0);
+                }
+
+                using (var cmdRcxp = new OdbcCommand($"SELECT COUNT(*) FROM {library}.TCTXP WHERE XPEJER=? AND XPPERI=? AND XPRCXP=?", cn))
+                {
+                    cmdRcxp.Parameters.AddWithValue("@XPEJER", ejercicio);
+                    cmdRcxp.Parameters.AddWithValue("@XPPERI", mes);
+                    cmdRcxp.Parameters.AddWithValue("@XPRCXP", Trunc(rcxp, 10));
+                    countRcxp = Convert.ToInt32(await cmdRcxp.ExecuteScalarAsync() ?? 0);
+                }
+
+                throw;
+            }
         }
 
         private async Task CleanupPartialPurchasesInserts(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc, string rcxpx)
@@ -412,29 +486,39 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public async Task<bool> ValidarExistenciaDocumento(int ejercicio, int mes, string Tipodoc, string nrodoc)
         {
-            bool rp = false;
-            var Query = $"select * from {library}.tregc where RCEJER={ejercicio} and RCPERI={mes} and RCTDOC='{Tipodoc}' AND RCNDOC='{nrodoc}'";
+            const string qTregc = @"SELECT COUNT(*) FROM {0}.TREGC WHERE RCEJER=? AND RCPERI=? AND RCTDOC=? AND RCNDOC=?";
+            const string qTctxp = @"SELECT COUNT(*) FROM {0}.TCTXP WHERE XPEJER=? AND XPPERI=? AND XPTDOC=? AND XPNDOC=?";
 
             using (var connection = new OdbcConnection(connectionString))
             {
-                OdbcCommand command = new OdbcCommand(Query, connection);
                 await connection.OpenAsync();
-                
+
                 if (!CallLibreria(connection))
                     return false;
-                
-                using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
-                {
-                    // Verificar si se encontró algún dato
-                    if (await reader.ReadAsync())
-                    {
 
-                        int count = reader.GetInt32(0); // Obtener el valor de la primera columna
-                        rp = count > 0; // Si hay alguna fila, existe el tipo de documento
-                    }
+                int countTregc = 0;
+                int countTctxp = 0;
+
+                using (var cmdTregc = new OdbcCommand(string.Format(qTregc, library), connection))
+                {
+                    cmdTregc.Parameters.AddWithValue("@RCEJER", ejercicio);
+                    cmdTregc.Parameters.AddWithValue("@RCPERI", mes);
+                    cmdTregc.Parameters.AddWithValue("@RCTDOC", Trunc(Tipodoc, 2));
+                    cmdTregc.Parameters.AddWithValue("@RCNDOC", Trunc(nrodoc, 15));
+                    countTregc = Convert.ToInt32(await cmdTregc.ExecuteScalarAsync() ?? 0);
                 }
+
+                using (var cmdTctxp = new OdbcCommand(string.Format(qTctxp, library), connection))
+                {
+                    cmdTctxp.Parameters.AddWithValue("@XPEJER", ejercicio);
+                    cmdTctxp.Parameters.AddWithValue("@XPPERI", mes);
+                    cmdTctxp.Parameters.AddWithValue("@XPTDOC", Trunc(Tipodoc, 2));
+                    cmdTctxp.Parameters.AddWithValue("@XPNDOC", Trunc(nrodoc, 15));
+                    countTctxp = Convert.ToInt32(await cmdTctxp.ExecuteScalarAsync() ?? 0);
+                }
+
+                return countTregc > 0 || countTctxp > 0;
             }
-            return rp;
         }
 
         public async Task<bool> ValidarStatusRC(int ejercicio, int mes, string stconta)
