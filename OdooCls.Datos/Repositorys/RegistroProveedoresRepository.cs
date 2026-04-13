@@ -10,18 +10,29 @@ namespace OdooCls.Infrastucture.Repositorys
     {
         private readonly IConfiguration configuration;
         string? library;
+        string? companyCode;
         string? connectionString;
 
         public RegistroProveedoresRepository(IConfiguration configuration)
         {
             this.configuration = configuration;
             library = this.configuration["Authentication:Library"];
+            companyCode = ObtenerCompanyCode(library);
             connectionString = this.configuration["ConnectionStrings:ERPConexion"];
         }
 
-        private static bool CallLibreria(OdbcConnection cn)
+        private static string ObtenerCompanyCode(string? libraryName)
         {
-            string sql = "CALL SPEED407.MA1004 ('XX')";
+            if (string.IsNullOrWhiteSpace(libraryName) || libraryName.Length < 2)
+                throw new InvalidOperationException("Authentication:Library no tiene un formato válido.");
+
+            var trimmed = libraryName.Trim();
+            return trimmed.Substring(trimmed.Length - 2).ToUpperInvariant();
+        }
+
+        private bool CallLibreria(OdbcConnection cn)
+        {
+            string sql = $"CALL SPEED407.MA1004 ('{companyCode}')";
             using var cmd = new OdbcCommand(sql, cn);
             try
             {
