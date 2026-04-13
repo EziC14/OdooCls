@@ -96,6 +96,8 @@ namespace OdooCls.Application.Services
                         rcxp = anio.ToString() + meses.ToString() + correla.ToString("D5");
                         break;
                 }
+
+                Console.WriteLine($"[RC] Correlativo generado | periodo={peri} correla={correla} rcxp={rcxp} doc={rcdto.RCTDOC}-{rcdto.RCNDOC} proveedor={rcdto.RCCPRO} moneda={rcdto.RCMONE} total={rcdto.RCPVTA}");
                 
                 rcdto.RCRCXP = rcxp;
 
@@ -119,10 +121,12 @@ namespace OdooCls.Application.Services
                 RegistroCompras compras = RegistroComprasMapper.DtoToEntity(rcdto);
                 try
                 {
+                    Console.WriteLine($"[RC] Antes de InsertTregcAndCtxp | EJER={compras.RCEJER} PERI={compras.RCPERI} TDOC={compras.RCTDOC} NDOC={compras.RCNDOC} RCRCXP={compras.RCRCXP} PROV={compras.RCPROV} COSTO={compras.RCCOST}");
                     Itregc = await Registro.InsertTregcAndCtxp(compras);
                 }
                 catch (Exception exIns)
                 {
+                    Console.WriteLine($"[RC] EXCEPTION InsertTregcAndCtxp | EJER={compras.RCEJER} PERI={compras.RCPERI} TDOC={compras.RCTDOC} NDOC={compras.RCNDOC} RCRCXP={compras.RCRCXP} | {exIns.Message}");
                     return new ApiResponse<RegistroComprasDto>(500, 500, $"Fallo en transacción RC/CXP: {exIns.Message}");
                 }
                 if (Itregc == true)

@@ -1,0 +1,55 @@
+		MDALMA	MDALMA	CHARACTER	2	No	Ninguna	' '		Codigo Almacen	284			Codigo Almacen      	                    	                    
+		MDEJER	MDEJER	NUMERIC	4,0	No	Ninguna	0		Ejercicio				Ejercicio           	                    	                    
+		MDPERI	MDPERI	NUMERIC	2,0	No	Ninguna	0		Periodo				Periodo             	                    	                    
+		MDCMOV	MDCMOV	CHARACTER	1	No	Ninguna	' '		Clase Movim.	284			Clase Movim.        	                    	                    
+		MDCOMP	MDCOMP	NUMERIC	6,0	No	Ninguna	0		Num.Vale Alm.				Num.Vale Alm.       	                    	                    
+		MDCORR	MDCORR	NUMERIC	4,0	No	Ninguna	0		Correlativo				Correlativo         	                    	                    
+		MDTMOV	MDTMOV	CHARACTER	2	No	Ninguna	' '		Tipo Movimiento	284			Tipo Movimiento     	                    	                    
+		MDFECH	MDFECH	NUMERIC	8,0	No	Ninguna	0		Fecha Movimiento				Fecha Movimiento    	                    	                    
+		MDLOTE	MDLOTE	CHARACTER	10	No	Ninguna	' '		Lote	284			Lote                	                    	                    
+		MDCOAR	MDCOAR	CHARACTER	20	No	Ninguna	' '		Codigo Articulo	284			Codigo Articulo     	                    	                    
+		MDCANR	MDCANR	NUMERIC	15,3	No	Ninguna	0		Cantidad Regist.				Cantidad Regist.    	                    	                    
+		MDUMER	MDUMER	CHARACTER	3	No	Ninguna	' '		Uni.Med.Regist.	284			Uni.Med.Regist.     	                    	                    
+		MDCUER	MDCUER	NUMERIC	15,3	No	Ninguna	0		Costo Regist.US$				Costo Regist.US$    	                    	                    
+		MDCUNR	MDCUNR	NUMERIC	15,3	No	Ninguna	0		Costo Regist.S/.				Costo Regist.S/.    	                    	                    
+		MDMONO	MDMONO	NUMERIC	2,0	No	Ninguna	0		Moneda de Origen				Moneda de Origen    	                    	                    
+		MDTCAM	MDTCAM	NUMERIC	15,6	No	Ninguna	0		Tipo de Cambio				Tipo de Cambio      	                    	                    
+		MDCOMO	MDCOMO	NUMERIC	15,3	No	Ninguna	0		Total Costo Moneda Orig				Costo Moneda Orig   	                    	                    
+		MDTCMO	MDTCMO	NUMERIC	15,6	No	Ninguna	0		Tipo Cambio M.Orig.				Tipo Cambio M.Orig. 	                    	                    
+		MDCANA	MDCANA	NUMERIC	15,3	No	Ninguna	0		Cantidad Almacen				Cantidad Almacen    	                    	                    
+		MDCUEA	MDCUEA	NUMERIC	15,3	No	Ninguna	0		Costo Almacen US$				Costo Almacen US$   	                    	                    
+		MDCUNA	MDCUNA	NUMERIC	15,3	No	Ninguna	0		Costo Almacen S/.				Costo Almacen S/.   	                    	                    
+		MDCOEP	MDCOEP	NUMERIC	15,6	No	Ninguna	0		Costo Promed. US$				Costo Promed. US$   	                    	                    
+		MDCOSP	MDCOSP	NUMERIC	15,6	No	Ninguna	0		Costo Promed. S/.				Costo Promed. S/.   	                    	                    
+		MDTOEC	MDTOEC	NUMERIC	15,3	No	Ninguna	0		Total Costo US$				Total Costo US$     	                    	                    
+		MDTOTC	MDTOTC	NUMERIC	15,3	No	Ninguna	0		Total Costo S/.				Total Costo S/.     	                    	                    
+		MDSITU	MDSITU	CHARACTER	2	No	Ninguna	' '		Situacion	284			Situacion           	                    	                    
+		MDCOST	MDCOST	CHARACTER	15	No	Ninguna	' '		CENTRO DE COSTO	284			CENTRO DE COSTO     	                    	                    
+		MDACTI	MDACTI	CHARACTER	10	No	Ninguna	' '		Actividad	284			Actividad           	                    	                    
+		MDTGAS	MDTGAS	CHARACTER	10	No	Ninguna	' '		Tipo de Gasto	284			Tipo de Gasto       	                    	                    
+		MDDRE1	MDDRE1	CHARACTER	10	No	Ninguna	' '		REF.AUXIL. 1	284			MDDRE1              	                    	                    
+		MDDRE2	MDDRE2	CHARACTER	10	No	Ninguna	' '		REF.AUXIL. 2	284			MDDRE2              	                    	                    
+		MDDRE3	MDDRE3	CHARACTER	10	No	Ninguna	' '		REF.AUXIL. 3	284			MDDRE3              	                    	                    
+		MDVFCA	MDVFCA	NUMERIC	15,3	No	Ninguna	0		CANT.ENTREGADA				MDVFCA              	                    	                    
+		MDFVTO	MDFVTO	NUMERIC	8,0	No	Ninguna	0		FECHA DE VTO				MDFVTO              	                    	                    
+		MDDRE4	MDDRE4	CHARACTER	10	No	Ninguna	' '		REFERENCIA AUX. 4	284			MDDRE4              	                    	                    
+		MDDRE5	MDDRE5	CHARACTER	20	No	Ninguna	' '		REFERENCIA AUX. 5	284			MDDRE5              	                    	                    
+		MDDRE6	MDDRE6	CHARACTER	20	No	Ninguna	' '		REFERENCIA AUX. 6	284			MDDRE6              	                    	                    
+		MDDRE7	MDDRE7	CHARACTER	20	No	Ninguna	' '		REFERENCIA AUX. 7	284			MDDRE7              	                    	                    
+		MDDRE8	MDDRE8	CHARACTER	20	No	Ninguna	' '		REFERENCIA AUX. 8	284			MDDRE8              	                    	                    
+		MDDRE9	MDDRE9	CHARACTER	20	No	Ninguna	' '		REFERENCIA AUX. 9	284			MDDRE9              	                    	                    
+		MDDRE0	MDDRE0	CHARACTER	40	No	Ninguna	' '		REFERENCIA AUX.10	284			MDDRE0              	                    	                    
+		MDDSEV	MDDSEV	NUMERIC	5,0	No	Ninguna	0		SEC.DE VALORIZACION				MDDSEV              	                    	                    
+		MDREN1	MDREN1	NUMERIC	15,3	No	Ninguna	0		REF.NUM.1				MDREN1              	                    	                    
+		MDREN2	MDREN2	NUMERIC	15,2	No	Ninguna	0		REF.NUM.2				MDREN2              	                    	                    
+		MDREF1	MDREF1	NUMERIC	8,0	No	Ninguna	0		REF.FECHA. 1				MDREF1              	                    	                    
+		MDREF2	MDREF2	NUMERIC	8,0	No	Ninguna	0		REF.FECHA. 2				MDREF2              	                    	                    
+		MDREA1	MDREA1	CHARACTER	60	No	Ninguna	' '		REF.ALFA. 1	284			MDREA1              	                    	                    
+		MDREA2	MDREA2	CHARACTER	60	No	Ninguna	' '		REF.ALFA. 2	284			MDREA2              	                    	                    
+		MDNDES	MDNDES	NUMERIC	10,0	No	Ninguna	0		NUMERO DESPACHO				MDNDES              	                    	                    
+		MDSITD	MDSITD	CHARACTER	10	No	Ninguna	' '		SITUACION DESPACHO	284			MDSITD              	                    	                    
+		MDRFDE	MDRFDE	NUMERIC	10,0	No	Ninguna	0		NUERO DE BOLSA				MDRFDE              	                    	                    
+		MDCOEX	MDCOEX	NUMERIC	15,3	No	Ninguna	0		T.Costo.US$ Ant.				T.Costo.US$         	Ant.                	                    
+		MDCOSX	MDCOSX	NUMERIC	15,3	No	Ninguna	0		T.Costo.S/. Ant.				T.Costo.S/.         	Ant.                	                    
+		MDCOEA	MDCOEA	NUMERIC	15,6	No	Ninguna	0		C.Promed.US$ Ant.				C.Promed.US$        	Ant.                	                    
+		MDCOSA	MDCOSA	NUMERIC	15,6	No	Ninguna	0		C.Promed.S/. Ant.				C.Promed.S/.        	Ant.                	                    

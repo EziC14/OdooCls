@@ -17,13 +17,24 @@ namespace OdooCls.Infrastucture.Repositorys
     {
         private readonly IConfiguration configuration;
         string? library;
+        string? companyCode;
         string? connectionString;
 
         public RegistrocomprasRepository(IConfiguration configuration)
         {
             this.configuration = configuration;
             library = this.configuration["Authentication:Library"];
+            companyCode = ObtenerCompanyCode(library);
             connectionString = this.configuration["ConnectionStrings:ERPConexion"];
+        }
+
+        private static string ObtenerCompanyCode(string? libraryName)
+        {
+            if (string.IsNullOrWhiteSpace(libraryName) || libraryName.Length < 2)
+                throw new InvalidOperationException("Authentication:Library no tiene un formato válido.");
+
+            var trimmed = libraryName.Trim();
+            return trimmed.Substring(trimmed.Length - 2).ToUpperInvariant();
         }
 
         private static string Trunc(string? value, int maxLength)
@@ -32,9 +43,9 @@ namespace OdooCls.Infrastucture.Repositorys
             return value.Length > maxLength ? value.Substring(0, maxLength) : value;
         }
 
-        private static bool CallLibreria(OdbcConnection cn)
+        private bool CallLibreria(OdbcConnection cn)
         {
-            string sql = "CALL SPEED407.MA1004 ('XX')";
+            string sql = $"CALL SPEED407.MA1004 ('{companyCode}')";
             using var cmd = new OdbcCommand(sql, cn);
             try
             {
@@ -59,7 +70,7 @@ namespace OdooCls.Infrastucture.Repositorys
                     if (!CallLibreria(connection))
                         return 0;
 
-                    using var cmd = new OdbcCommand("{ CALL speed400xx.SP_GET_NEXT_TTABD(?, ?) }", connection)
+                    using var cmd = new OdbcCommand($"{{ CALL {library}.SP_GET_NEXT_TTABD(?, ?) }}", connection)
                     {
                         CommandType = CommandType.StoredProcedure
                     };
@@ -177,6 +188,7 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public async Task<bool> InsertTregcAndCtxp(RegistroCompras registro)
         {
+            Console.WriteLine($"[RC] InsertTregcAndCtxp inicio | EJER={registro.RCEJER} PERI={registro.RCPERI} TDOC={registro.RCTDOC} NDOC={registro.RCNDOC} RCRCXP={registro.RCRCXP} PROV={registro.RCPROV} MONE={registro.RCMONE} VALV={registro.RCVALV} IMP1={registro.RCIMP1} PVT={registro.RCPVTA}");
             string queryTregc = $@"insert into {library}.tregc (
             RCEJER,RCPERI,RCTDOC,RCNDOC,RCFECH,RCRCXP,RCCPRO,RCPROV,RCRUC,RCARTI,RCMONE,RCTCAM,RCVALV,RCCVAL,RCMVAL,RCVALI,
             RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
@@ -192,6 +204,7 @@ namespace OdooCls.Infrastucture.Repositorys
 
                 using (var cmdTregc = new OdbcCommand(queryTregc, cn))
                 {
+                    Console.WriteLine($"[RC] Insertando TREGC | RCEJER={registro.RCEJER} RCPERI={registro.RCPERI} RCTDOC={registro.RCTDOC} RCNDOC={registro.RCNDOC} RCRCXP={registro.RCRCXP}");
                     cmdTregc.CommandType = CommandType.Text;
                     cmdTregc.Parameters.AddWithValue("@RCEJER", registro.RCEJER);
                     cmdTregc.Parameters.AddWithValue("@RCPERI", registro.RCPERI);
@@ -237,11 +250,14 @@ namespace OdooCls.Infrastucture.Repositorys
                     cmdTregc.Parameters.AddWithValue("@RCCBSA", Trunc(registro.RCCBSA, 1));
 
                     var rowsTregc = await cmdTregc.ExecuteNonQueryAsync();
+                    Console.WriteLine($"[RC] TREGC filas afectadas={rowsTregc}");
                     if (rowsTregc <= 0)
                         return false;
                 }
 
+                Console.WriteLine($"[RC] Insertando TCTXP | EJER={registro.RCEJER} PERI={registro.RCPERI} TDOC={registro.RCTDOC} NDOC={registro.RCNDOC} RCRCXP={registro.RCRCXP}");
                 await InsertCtxpInConnection(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC);
+                Console.WriteLine($"[RC] InsertTregcAndCtxp OK | EJER={registro.RCEJER} PERI={registro.RCPERI} TDOC={registro.RCTDOC} NDOC={registro.RCNDOC} RCRCXP={registro.RCRCXP}");
                 return true;
             }
             catch (Exception ex)
@@ -255,7 +271,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 }
                 catch { }
 
-                Console.WriteLine($"Error InsertTregcAndCtxp: {ex.Message}");
+                Console.WriteLine($"[RC] ERROR InsertTregcAndCtxp | EJER={registro.RCEJER} PERI={registro.RCPERI} TDOC={registro.RCTDOC} NDOC={registro.RCNDOC} RCRCXP={registro.RCRCXP} | {ex.Message}");
                 throw new Exception($"[InsertTregcAndCtxp] {ex.Message}", ex);
             }
         }
@@ -281,12 +297,14 @@ namespace OdooCls.Infrastucture.Repositorys
 
             using OdbcCommand cmdCtxp = new OdbcCommand(queryCtxp, cn);
             cmdCtxp.CommandType = CommandType.Text;
+            Console.WriteLine($"[RC] Preparando TCTXP | EJER={ejercicio} PERI={mes} TDOC={tipodoc} NDOC={nrodoc}");
             cmdCtxp.Parameters.AddWithValue("@RCEJER", ejercicio);
             cmdCtxp.Parameters.AddWithValue("@RCPERI", mes);
             cmdCtxp.Parameters.AddWithValue("@RCTDOC", Trunc(tipodoc, 2));
             cmdCtxp.Parameters.AddWithValue("@RCNDOC", Trunc(nrodoc, 15));
 
             var rowsCtxp = await cmdCtxp.ExecuteNonQueryAsync();
+            Console.WriteLine($"[RC] TCTXP filas afectadas={rowsCtxp} | EJER={ejercicio} PERI={mes} TDOC={tipodoc} NDOC={nrodoc}");
             if (rowsCtxp <= 0)
                 throw new Exception("No se insertaron filas en TCTXP");
         }
