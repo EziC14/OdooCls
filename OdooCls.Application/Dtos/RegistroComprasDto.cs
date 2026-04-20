@@ -36,6 +36,9 @@ namespace OdooCls.Application.Dtos
         public decimal RCPVTA { get; set; } = 0;
         public string RCCPVT { get; set; } = "";
         public string RCMPVT { get; set; } = "";
+        public decimal RCRET1 { get; set; } = 0;
+        public string RCCRE1 { get; set; } = "";
+        public string RCMRE1 { get; set; } = "";
         public int RCCONC { get; set; } = 0;
         public string RCASTO { get; set; } = "";
         public string RCCOST { get; set; } = "";

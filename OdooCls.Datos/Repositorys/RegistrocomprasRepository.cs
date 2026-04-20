@@ -153,9 +153,9 @@ namespace OdooCls.Infrastucture.Repositorys
             bool rp = false;
             string Query = $@"insert into {library}.tregc (
             RCEJER,RCPERI,RCTDOC,RCNDOC,RCFECH,RCRCXP,RCCPRO,RCPROV,RCRUC,RCARTI,RCMONE,RCTCAM,RCVALV,RCCVAL,RCMVAL,RCVALI,
-            RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
+            RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCRET1,RCCRE1,RCMRE1,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
             RCFEVE,RCNDOM,RCCPAG,RCSITU,RCUSIN,RCFEIN,RCHOIN,RCRVVA,RCREF7,RCCBSA
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             try
             {
                 using OdbcConnection cn = new OdbcConnection(connectionString);
@@ -195,6 +195,9 @@ namespace OdooCls.Infrastucture.Repositorys
                         cmd.Parameters.AddWithValue("@RCPVTA", registro.RCPVTA);
                         cmd.Parameters.AddWithValue("@RCCPVT", Trunc(registro.RCCPVT, 15));
                         cmd.Parameters.AddWithValue("@RCMPVT", Trunc(registro.RCMPVT, 1));
+                        cmd.Parameters.AddWithValue("@RCRET1", registro.RCRET1);
+                        cmd.Parameters.AddWithValue("@RCCRE1", Trunc(registro.RCCRE1, 15));
+                        cmd.Parameters.AddWithValue("@RCMRE1", Trunc(registro.RCMRE1, 1));
                         cmd.Parameters.AddWithValue("@RCCONC", registro.RCCONC);
                         cmd.Parameters.AddWithValue("@RCASTO", Trunc(registro.RCASTO, 10));
                         cmd.Parameters.AddWithValue("@RCCOST", Trunc(registro.RCCOST, 15));
@@ -235,9 +238,9 @@ namespace OdooCls.Infrastucture.Repositorys
         {
             string queryTregc = $@"insert into {library}.tregc (
             RCEJER,RCPERI,RCTDOC,RCNDOC,RCFECH,RCRCXP,RCCPRO,RCPROV,RCRUC,RCARTI,RCMONE,RCTCAM,RCVALV,RCCVAL,RCMVAL,RCVALI,
-            RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
+            RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCRET1,RCCRE1,RCMRE1,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
             RCFEVE,RCNDOM,RCCPAG,RCSITU,RCUSIN,RCFEIN,RCHOIN,RCRVVA,RCREF7,RCCBSA
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             try
             {
                 using OdbcConnection cn = new OdbcConnection(connectionString);
@@ -276,6 +279,9 @@ namespace OdooCls.Infrastucture.Repositorys
                     cmdTregc.Parameters.AddWithValue("@RCPVTA", registro.RCPVTA);
                     cmdTregc.Parameters.AddWithValue("@RCCPVT", Trunc(registro.RCCPVT, 15));
                     cmdTregc.Parameters.AddWithValue("@RCMPVT", Trunc(registro.RCMPVT, 1));
+                    cmdTregc.Parameters.AddWithValue("@RCRET1", registro.RCRET1);
+                    cmdTregc.Parameters.AddWithValue("@RCCRE1", Trunc(registro.RCCRE1, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCMRE1", Trunc(registro.RCMRE1, 1));
                     cmdTregc.Parameters.AddWithValue("@RCCONC", registro.RCCONC);
                     cmdTregc.Parameters.AddWithValue("@RCASTO", Trunc(registro.RCASTO, 10));
                     cmdTregc.Parameters.AddWithValue("@RCCOST", Trunc(registro.RCCOST, 15));
