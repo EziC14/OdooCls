@@ -43,6 +43,27 @@ namespace OdooCls.Infrastucture.Repositorys
             return value.Length > maxLength ? value.Substring(0, maxLength) : value;
         }
 
+        private static string BuildOdbcDiagnostics(OdbcException ex)
+        {
+            if (ex.Errors == null || ex.Errors.Count == 0)
+                return ex.Message;
+
+            var sb = new StringBuilder();
+            foreach (OdbcError err in ex.Errors)
+            {
+                sb.Append($"[SQLState={err.SQLState}; NativeError={err.NativeError}; Message={err.Message}] ");
+            }
+
+            return sb.ToString().Trim();
+        }
+
+        private static void ValidateInsertPlaceholders(string sql, int expectedCount)
+        {
+            int qCount = sql.Count(c => c == '?');
+            if (qCount != expectedCount)
+                throw new InvalidOperationException($"Cantidad inválida de placeholders en INSERT TREGC. Esperado={expectedCount}, Actual={qCount}");
+        }
+
         private bool CallLibreria(OdbcConnection cn)
         {
             string sql = $"CALL SPEED407.MA1004 ('{companyCode}')";
@@ -155,9 +176,10 @@ namespace OdooCls.Infrastucture.Repositorys
             RCEJER,RCPERI,RCTDOC,RCNDOC,RCFECH,RCRCXP,RCCPRO,RCPROV,RCRUC,RCARTI,RCMONE,RCTCAM,RCVALV,RCCVAL,RCMVAL,RCVALI,
             RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCRET1,RCCRE1,RCMRE1,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
             RCFEVE,RCNDOM,RCCPAG,RCSITU,RCUSIN,RCFEIN,RCHOIN,RCRVVA,RCREF7,RCCBSA
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             try
             {
+                ValidateInsertPlaceholders(Query, 45);
                 using OdbcConnection cn = new OdbcConnection(connectionString);
                 {
                     using OdbcCommand cmd = new OdbcCommand(Query, cn);
@@ -219,6 +241,10 @@ namespace OdooCls.Infrastucture.Repositorys
                      }
                 }
             }
+            catch (OdbcException)
+            {
+                rp = false;
+            }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error InsertTregc: {ex.Message}");
@@ -240,9 +266,10 @@ namespace OdooCls.Infrastucture.Repositorys
             RCEJER,RCPERI,RCTDOC,RCNDOC,RCFECH,RCRCXP,RCCPRO,RCPROV,RCRUC,RCARTI,RCMONE,RCTCAM,RCVALV,RCCVAL,RCMVAL,RCVALI,
             RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCRET1,RCCRE1,RCMRE1,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
             RCFEVE,RCNDOM,RCCPAG,RCSITU,RCUSIN,RCFEIN,RCHOIN,RCRVVA,RCREF7,RCCBSA
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             try
             {
+                ValidateInsertPlaceholders(queryTregc, 45);
                 using OdbcConnection cn = new OdbcConnection(connectionString);
                 await cn.OpenAsync();
 
@@ -305,6 +332,21 @@ namespace OdooCls.Infrastucture.Repositorys
 
                 await InsertCtxpInConnection(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC);
                 return true;
+            }
+            catch (OdbcException ex)
+            {
+                string diag = BuildOdbcDiagnostics(ex);
+
+                try
+                {
+                    using OdbcConnection cnCleanup = new OdbcConnection(connectionString);
+                    await cnCleanup.OpenAsync();
+                    if (CallLibreria(cnCleanup))
+                        await CleanupPartialPurchasesInserts(cnCleanup, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP);
+                }
+                catch { }
+
+                throw new Exception($"[InsertTregcAndCtxp] ODBC {diag}", ex);
             }
             catch (Exception ex)
             {
@@ -386,6 +428,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 }
 
                 throw;
+            }
+            catch (OdbcException ex)
+            {
+                throw new Exception($"[InsertCtxpInConnection] ODBC {BuildOdbcDiagnostics(ex)}", ex);
             }
         }
 
