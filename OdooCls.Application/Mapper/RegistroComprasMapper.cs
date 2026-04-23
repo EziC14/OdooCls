@@ -54,6 +54,7 @@ namespace OdooCls.Application.Mapper
                 RCNDOM = registro.RCNDOM,
                 RCCPAG = registro.RCCPAG,
                 RCSITU = registro.RCSITU,
+                RCFREF = registro.FCFREF, // Adding FCFREF mapping
                 RCUSIN = registro.RCUSIN,
                 RCFEIN = registro.RCFEIN,
                 RCHOIN = registro.RCHOIN,
