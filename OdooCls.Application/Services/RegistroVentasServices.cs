@@ -90,7 +90,7 @@ namespace OdooCls.Application.Services
              
 
                 RegistroVentas ventas = RegistroVentasMapper.DtoToEntity(rvdto);
-                Itregv = await Registro.InsertTregv(ventas);
+                Itregv = await Registro.InsertTregvAndCtxc(ventas);
                 if (Itregv == true)
                 {
                     return new ApiResponse<RegistroVentasDto>(200, 1000, $"Documento registrado en el Registro de Ventas");

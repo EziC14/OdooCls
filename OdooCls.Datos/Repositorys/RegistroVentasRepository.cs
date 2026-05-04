@@ -38,6 +38,34 @@ namespace OdooCls.Infrastucture.Repositorys
             return trimmed.Substring(trimmed.Length - 2).ToUpperInvariant();
         }
 
+        private static string BuildOdbcDiagnostics(OdbcException ex)
+        {
+            if (ex.Errors == null || ex.Errors.Count == 0)
+                return ex.Message;
+
+            var sb = new StringBuilder();
+            foreach (OdbcError err in ex.Errors)
+            {
+                sb.Append($"[SQLState={err.SQLState}; NativeError={err.NativeError}; Message={err.Message}] ");
+            }
+
+            return sb.ToString().Trim();
+        }
+
+        private static bool IsSql7008(OdbcException ex)
+        {
+            if (ex.Message.Contains("SQL7008", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            foreach (OdbcError err in ex.Errors)
+            {
+                if (err.NativeError == -7008 || (err.Message?.Contains("SQL7008", StringComparison.OrdinalIgnoreCase) ?? false))
+                    return true;
+            }
+
+            return false;
+        }
+
         private bool CallLibreria(OdbcConnection cn)
         {
             string sql = $"CALL SPEED407.MA1004 ('{companyCode}')";
@@ -56,11 +84,21 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public async Task<bool> InsertCtxC(int ejercicio, int mes, string Tipodoc, string nrodoc)
         {
-            string query = $@"INSERT INTO {library}.TCTXC
-            SELECT RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVFEVE, RVCCLI, RVMONE, RVTCAM, RVCPAG, RVPVTA, 0, RVPVTA, '02',
-                   CASE WHEN RVMONE = 0 THEN RVPVTA ELSE ROUND((RVPVTA * RVTCAM), 2) END, 0, RVTCAM,
-                   CASE WHEN RVMONE = 0 THEN ROUND((RVPVTA / RVTCAM), 2) ELSE RVPVTA END, 0, '', '', '',
-                   RVCCOB, RVCVEN, '', '', '', '', '', '', RVACTI, RVTGAS, RVCPVT, RVCOST, '', '', '', 0, 0
+            string query = $@"INSERT INTO {library}.TCTXC (
+                CCEJER, CCPERI, CCTDOC, CCNDOC, CCFECH, CCFEVE, CCCCLI, CCMONE, CCTCAM, CCCPAG,
+                CCPVTA, CCPACU, CCSALD, CCSITU, CCPVMN, CCPAMN, CCTCDO, CCPVDO, CCPADO,
+                CCSILC, CCNRID, CCCLGA, CCCCOB, CCCVEN, CCNCAN, CCHRF1, CCHRF2, CCHRF3, CCHRF4, CCHRF5,
+                CCACTI, CCTGAS, CCCTAC, CCCCTO, CCHR06, CCHR07, CCHR08, CCHR09, CCHR1O
+            )
+            SELECT
+                RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVFEVE, RVCCLI, RVMONE, RVTCAM, RVCPAG,
+                RVPVTA, 0, RVPVTA, '02',
+                CASE WHEN RVMONE = 0 THEN RVPVTA ELSE ROUND((RVPVTA * RVTCAM), 2) END, 0, RVTCAM,
+                CASE WHEN RVMONE = 0 THEN ROUND((RVPVTA / RVTCAM), 2) ELSE RVPVTA END, 0,
+                '', '', '', RVCCOB, RVCVEN,
+                '', '', '', '', '', '',
+                RVACTI, RVTGAS, '', RVCOST,
+                '', '', '', 0, 0
             FROM {library}.TREGV
             WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
 
@@ -83,6 +121,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 var rowsAffected = await cmd.ExecuteNonQueryAsync();
                 return rowsAffected > 0;
             }
+            catch (OdbcException ex)
+            {
+                throw new Exception($"Error al insertar TCTXC: {BuildOdbcDiagnostics(ex)}", ex);
+            }
             catch (Exception ex)
             {
                 throw new Exception($"Error al insertar TCTXC: {ex.Message}", ex);
@@ -91,12 +133,11 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public async Task<bool> InsertTregv(RegistroVentas registroVentas)
         {
-            string Query = $@"insert into {library}.tregv (
-                           RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVCCLI, RVCLIE,  RVMONE, RVTCAM, RVVALV, RVCVAL, RVMVAL, RVVALI, RVCVAI, RVMVAI, RVDSCT, RVCDSC, RVMDSC, RVIGV, RVCIGV, RVMIGV, RVIMP2, RVCIM2,  
-                           RVMIM2, RVIMP3, RVCIM3, RVMIM3, RVRET1, RVCRE1, RVMRE1, RVRET2, RVCRE2, RVMRE2, RVPVTA, RVCPVT, RVMPVT, RVCONC, RVTREF, RVNREF, RVASTO, RVGRAB, RVFPRO, RVHPRO, RVFEVE, RVNDOM, RVCPAG,
-                           RVRUC,RVSITU, RVCOST, RVCVEN, RVCCOB, RVACTI, RVTGAS, RVBANC, RVNBCO, RVUSIN, RVFEIN, RVHOIN, RVUSMD, RVFEMD, RVHOMD, RVREF1, RVREF2, RVREF3, RVREF4, RVREF5, RVHASH, RVSUNA, RVGLOS       
-                           ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ";
+            return await InsertTregvAndCtxc(registroVentas);
+        }
 
+        public async Task<bool> InsertTregvAndCtxc(RegistroVentas registroVentas)
+        {
             try
             {
                 using OdbcConnection cn = new OdbcConnection(connectionString);
@@ -105,91 +146,54 @@ namespace OdooCls.Infrastucture.Repositorys
                 if (!CallLibreria(cn))
                     return false;
 
+                using var tx = cn.BeginTransaction();
+
                 try
                 {
-                    using OdbcCommand cmd = new OdbcCommand(Query, cn);
-                    cmd.CommandType = CommandType.Text;
-                    cmd.Parameters.AddWithValue("@RVEJER", registroVentas.RVEJER);
-                    cmd.Parameters.AddWithValue("@RVPERI", registroVentas.RVPERI);
-                    cmd.Parameters.AddWithValue("@RVTDOC", registroVentas.RVTDOC);
-                    cmd.Parameters.AddWithValue("@RVNDOC", registroVentas.RVNDOC);
-                    cmd.Parameters.AddWithValue("@RVFECH", registroVentas.RVFECH);
-                    cmd.Parameters.AddWithValue("@RVCCLI", registroVentas.RVCCLI);
-                    cmd.Parameters.AddWithValue("@RVCLIE", registroVentas.RVCLIE);
-                    cmd.Parameters.AddWithValue("@RVMONE", registroVentas.RVMONE);
-                    cmd.Parameters.AddWithValue("@RVTCAM", registroVentas.RVTCAM);
-                    cmd.Parameters.AddWithValue("@RVVALV", registroVentas.RVVALV);
-                    cmd.Parameters.AddWithValue("@RVCVAL", registroVentas.RVCVAL);
-                    cmd.Parameters.AddWithValue("@RVMVAL", registroVentas.RVMVAL);
-                    cmd.Parameters.AddWithValue("@RVVALI", registroVentas.RVVALI);
-                    cmd.Parameters.AddWithValue("@RVCVAI", registroVentas.RVCVAI);
-                    cmd.Parameters.AddWithValue("@RVMVAI", registroVentas.RVMVAI);
-                    cmd.Parameters.AddWithValue("@RVDSCT", registroVentas.RVDSCT);
-                    cmd.Parameters.AddWithValue("@RVCDSC", registroVentas.RVCDSC);
-                    cmd.Parameters.AddWithValue("@RVMDSC", registroVentas.RVMDSC);
-                    cmd.Parameters.AddWithValue("@RVIGV", registroVentas.RVIGV);
-                    cmd.Parameters.AddWithValue("@RVCIGV", registroVentas.RVCIGV);
-                    cmd.Parameters.AddWithValue("@RVMIGV", registroVentas.RVMIGV);
-                    cmd.Parameters.AddWithValue("@RVIMP2", registroVentas.RVIMP2);
-                    cmd.Parameters.AddWithValue("@RVCIM2", registroVentas.RVCIM2);
-                    cmd.Parameters.AddWithValue("@RVMIM2", registroVentas.RVMIM2);
-                    cmd.Parameters.AddWithValue("@RVIMP3", registroVentas.RVIMP3);
-                    cmd.Parameters.AddWithValue("@RVCIM3", registroVentas.RVCIM3);
-                    cmd.Parameters.AddWithValue("@RVMIM3", registroVentas.RVMIM3);
-                    cmd.Parameters.AddWithValue("@RVRET1", registroVentas.RVRET1);
-                    cmd.Parameters.AddWithValue("@RVCRE1", registroVentas.RVCRE1);
-                    cmd.Parameters.AddWithValue("@RVMRE1", registroVentas.RVMRE1);
-                    cmd.Parameters.AddWithValue("@RVRET2", registroVentas.RVRET2);
-                    cmd.Parameters.AddWithValue("@RVCRE2", registroVentas.RVCRE2);
-                    cmd.Parameters.AddWithValue("@RVMRE2", registroVentas.RVMRE2);
-                    cmd.Parameters.AddWithValue("@RVPVTA", registroVentas.RVPVTA);
-                    cmd.Parameters.AddWithValue("@RVCPVT", registroVentas.RVCPVT);
-                    cmd.Parameters.AddWithValue("@RVMPVT", registroVentas.RVMPVT);
-                    cmd.Parameters.AddWithValue("@RVCONC", registroVentas.RVCONC);
-                    cmd.Parameters.AddWithValue("@RVTREF", registroVentas.RVTREF);
-                    cmd.Parameters.AddWithValue("@RVNREF", registroVentas.RVNREF);
-                    cmd.Parameters.AddWithValue("@RVASTO", registroVentas.RVASTO);
-                    cmd.Parameters.AddWithValue("@RVGRAB", registroVentas.RVGRAB);
-                    cmd.Parameters.AddWithValue("@RVFPRO", registroVentas.RVFPRO);
-                    cmd.Parameters.AddWithValue("@RVHPRO", registroVentas.RVHPRO);
-                    cmd.Parameters.AddWithValue("@RVFEVE", registroVentas.RVFEVE);
-                    cmd.Parameters.AddWithValue("@RVNDOM", registroVentas.RVNDOM);
-                    cmd.Parameters.AddWithValue("@RVCPAG", registroVentas.RVCPAG);
-                    cmd.Parameters.AddWithValue("@RVRUC", registroVentas.RVRUC);
-                    cmd.Parameters.AddWithValue("@RVSITU", registroVentas.RVSITU);
-                    cmd.Parameters.AddWithValue("@RVCOST", registroVentas.RVCOST);
-                    cmd.Parameters.AddWithValue("@RVCVEN", registroVentas.RVCVEN);
-                    cmd.Parameters.AddWithValue("@RVCCOB", registroVentas.RVCCOB);
-                    cmd.Parameters.AddWithValue("@RVACTI", registroVentas.RVACTI);
-                    cmd.Parameters.AddWithValue("@RVTGAS", registroVentas.RVTGAS);
-                    cmd.Parameters.AddWithValue("@RVBANC", registroVentas.RVBANC);
-                    cmd.Parameters.AddWithValue("@RVNBCO", registroVentas.RVNBCO);
-                    cmd.Parameters.AddWithValue("@RVUSIN", registroVentas.RVUSIN);
-                    cmd.Parameters.AddWithValue("@RVFEIN", registroVentas.RVFEIN);
-                    cmd.Parameters.AddWithValue("@RVHOIN", registroVentas.RVHOIN);
-                    cmd.Parameters.AddWithValue("@RVUSMD", registroVentas.RVUSMD);
-                    cmd.Parameters.AddWithValue("@RVFEMD", registroVentas.RVFEMD);
-                    cmd.Parameters.AddWithValue("@RVHOMD", registroVentas.RVHOMD);
-                    cmd.Parameters.AddWithValue("@RVREF1", registroVentas.RVREF1);
-                    cmd.Parameters.AddWithValue("@RVREF2", registroVentas.RVREF2);
-                    cmd.Parameters.AddWithValue("@RVREF3", registroVentas.RVREF3);
-                    cmd.Parameters.AddWithValue("@RVREF4", registroVentas.RVREF4);
-                    cmd.Parameters.AddWithValue("@RVREF5", registroVentas.RVREF5);
-                    cmd.Parameters.AddWithValue("@RVHASH", registroVentas.RVHASH);
-                    cmd.Parameters.AddWithValue("@RVSUNA", registroVentas.RVSUNA);
-                    cmd.Parameters.AddWithValue("@RVGLOS", registroVentas.RVGLOS);
-                    await cmd.ExecuteNonQueryAsync();
+                    await InsertTregvHeaderInConnection(cn, tx, registroVentas);
 
-                    foreach (var item in registroVentas.RegistroVentasDetail)
+                    foreach (var item in registroVentas.RegistroVentasDetail ?? Enumerable.Empty<RegistroVentasDetail>())
                     {
-                        await InsertTregvDInConnection(cn, item);
+                        await InsertTregvDInConnection(cn, tx, item);
                     }
 
-                    await InsertCtxCInConnection(cn, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
+                    await InsertCtxCInConnection(cn, tx, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
+                    tx.Commit();
                     return true;
                 }
-                catch (Exception)
+                catch (OdbcException ex)
                 {
+                    if (IsSql7008(ex))
+                    {
+                        try
+                        {
+                            tx.Rollback();
+                        }
+                        catch
+                        {
+                        }
+
+                        await CleanupPartialSalesInserts(cn, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
+
+                        await InsertTregvHeaderInConnection(cn, null, registroVentas);
+
+                        foreach (var item in registroVentas.RegistroVentasDetail ?? Enumerable.Empty<RegistroVentasDetail>())
+                        {
+                            await InsertTregvDInConnection(cn, null, item);
+                        }
+
+                        await InsertCtxCInConnection(cn, null, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
+                        return true;
+                    }
+
+                    try
+                    {
+                        tx.Rollback();
+                    }
+                    catch
+                    {
+                    }
+
                     try
                     {
                         await CleanupPartialSalesInserts(cn, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
@@ -197,8 +201,33 @@ namespace OdooCls.Infrastucture.Repositorys
                     catch
                     {
                     }
-                    throw;
+
+                    throw new Exception($"Error al insertar cabecera TREGV: {BuildOdbcDiagnostics(ex)}", ex);
                 }
+                catch (Exception ex)
+                {
+                    try
+                    {
+                        tx.Rollback();
+                    }
+                    catch
+                    {
+                    }
+
+                    try
+                    {
+                        await CleanupPartialSalesInserts(cn, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
+                    }
+                    catch
+                    {
+                    }
+
+                    throw new Exception($"Error al insertar cabecera TREGV: {ex.Message}", ex);
+                }
+            }
+            catch (OdbcException ex)
+            {
+                throw new Exception($"Error al insertar cabecera TREGV: {BuildOdbcDiagnostics(ex)}", ex);
             }
             catch (Exception ex)
             {
@@ -206,7 +235,93 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
-        private async Task InsertTregvDInConnection(OdbcConnection cn, RegistroVentasDetail registro)
+        private async Task<int> InsertTregvHeaderInConnection(OdbcConnection cn, OdbcTransaction? tx, RegistroVentas registroVentas)
+        {
+            string query = $@"insert into {library}.tregv (
+                           RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVCCLI, RVCLIE,  RVMONE, RVTCAM, RVVALV, RVCVAL, RVMVAL, RVVALI, RVCVAI, RVMVAI, RVDSCT, RVCDSC, RVMDSC, RVIGV, RVCIGV, RVMIGV, RVIMP2, RVCIM2,
+                           RVMIM2, RVIMP3, RVCIM3, RVMIM3, RVRET1, RVCRE1, RVMRE1, RVRET2, RVCRE2, RVMRE2, RVPVTA, RVCPVT, RVMPVT, RVCONC, RVTREF, RVNREF, RVASTO, RVGRAB, RVFPRO, RVHPRO, RVFEVE, RVNDOM, RVCPAG,
+                           RVRUC,RVSITU, RVCOST, RVCVEN, RVCCOB, RVACTI, RVTGAS, RVBANC, RVNBCO, RVUSIN, RVFEIN, RVHOIN, RVUSMD, RVFEMD, RVHOMD, RVREF1, RVREF2, RVREF3, RVREF4, RVREF5, RVHASH, RVSUNA, RVGLOS
+                           ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ";
+
+            using OdbcCommand cmd = new OdbcCommand(query, cn);
+            cmd.CommandType = CommandType.Text;
+            if (tx != null)
+                cmd.Transaction = tx;
+
+            cmd.Parameters.AddWithValue("@RVEJER", registroVentas.RVEJER);
+            cmd.Parameters.AddWithValue("@RVPERI", registroVentas.RVPERI);
+            cmd.Parameters.AddWithValue("@RVTDOC", registroVentas.RVTDOC);
+            cmd.Parameters.AddWithValue("@RVNDOC", registroVentas.RVNDOC);
+            cmd.Parameters.AddWithValue("@RVFECH", registroVentas.RVFECH);
+            cmd.Parameters.AddWithValue("@RVCCLI", registroVentas.RVCCLI);
+            cmd.Parameters.AddWithValue("@RVCLIE", registroVentas.RVCLIE);
+            cmd.Parameters.AddWithValue("@RVMONE", registroVentas.RVMONE);
+            cmd.Parameters.AddWithValue("@RVTCAM", registroVentas.RVTCAM);
+            cmd.Parameters.AddWithValue("@RVVALV", registroVentas.RVVALV);
+            cmd.Parameters.AddWithValue("@RVCVAL", registroVentas.RVCVAL);
+            cmd.Parameters.AddWithValue("@RVMVAL", registroVentas.RVMVAL);
+            cmd.Parameters.AddWithValue("@RVVALI", registroVentas.RVVALI);
+            cmd.Parameters.AddWithValue("@RVCVAI", registroVentas.RVCVAI);
+            cmd.Parameters.AddWithValue("@RVMVAI", registroVentas.RVMVAI);
+            cmd.Parameters.AddWithValue("@RVDSCT", registroVentas.RVDSCT);
+            cmd.Parameters.AddWithValue("@RVCDSC", registroVentas.RVCDSC);
+            cmd.Parameters.AddWithValue("@RVMDSC", registroVentas.RVMDSC);
+            cmd.Parameters.AddWithValue("@RVIGV", registroVentas.RVIGV);
+            cmd.Parameters.AddWithValue("@RVCIGV", registroVentas.RVCIGV);
+            cmd.Parameters.AddWithValue("@RVMIGV", registroVentas.RVMIGV);
+            cmd.Parameters.AddWithValue("@RVIMP2", registroVentas.RVIMP2);
+            cmd.Parameters.AddWithValue("@RVCIM2", registroVentas.RVCIM2);
+            cmd.Parameters.AddWithValue("@RVMIM2", registroVentas.RVMIM2);
+            cmd.Parameters.AddWithValue("@RVIMP3", registroVentas.RVIMP3);
+            cmd.Parameters.AddWithValue("@RVCIM3", registroVentas.RVCIM3);
+            cmd.Parameters.AddWithValue("@RVMIM3", registroVentas.RVMIM3);
+            cmd.Parameters.AddWithValue("@RVRET1", registroVentas.RVRET1);
+            cmd.Parameters.AddWithValue("@RVCRE1", registroVentas.RVCRE1);
+            cmd.Parameters.AddWithValue("@RVMRE1", registroVentas.RVMRE1);
+            cmd.Parameters.AddWithValue("@RVRET2", registroVentas.RVRET2);
+            cmd.Parameters.AddWithValue("@RVCRE2", registroVentas.RVCRE2);
+            cmd.Parameters.AddWithValue("@RVMRE2", registroVentas.RVMRE2);
+            cmd.Parameters.AddWithValue("@RVPVTA", registroVentas.RVPVTA);
+            cmd.Parameters.AddWithValue("@RVCPVT", registroVentas.RVCPVT);
+            cmd.Parameters.AddWithValue("@RVMPVT", registroVentas.RVMPVT);
+            cmd.Parameters.AddWithValue("@RVCONC", registroVentas.RVCONC);
+            cmd.Parameters.AddWithValue("@RVTREF", registroVentas.RVTREF);
+            cmd.Parameters.AddWithValue("@RVNREF", registroVentas.RVNREF);
+            cmd.Parameters.AddWithValue("@RVASTO", registroVentas.RVASTO);
+            cmd.Parameters.AddWithValue("@RVGRAB", registroVentas.RVGRAB);
+            cmd.Parameters.AddWithValue("@RVFPRO", registroVentas.RVFPRO);
+            cmd.Parameters.AddWithValue("@RVHPRO", registroVentas.RVHPRO);
+            cmd.Parameters.AddWithValue("@RVFEVE", registroVentas.RVFEVE);
+            cmd.Parameters.AddWithValue("@RVNDOM", registroVentas.RVNDOM);
+            cmd.Parameters.AddWithValue("@RVCPAG", registroVentas.RVCPAG);
+            cmd.Parameters.AddWithValue("@RVRUC", registroVentas.RVRUC);
+            cmd.Parameters.AddWithValue("@RVSITU", registroVentas.RVSITU);
+            cmd.Parameters.AddWithValue("@RVCOST", registroVentas.RVCOST);
+            cmd.Parameters.AddWithValue("@RVCVEN", registroVentas.RVCVEN);
+            cmd.Parameters.AddWithValue("@RVCCOB", registroVentas.RVCCOB);
+            cmd.Parameters.AddWithValue("@RVACTI", registroVentas.RVACTI);
+            cmd.Parameters.AddWithValue("@RVTGAS", registroVentas.RVTGAS);
+            cmd.Parameters.AddWithValue("@RVBANC", registroVentas.RVBANC);
+            cmd.Parameters.AddWithValue("@RVNBCO", registroVentas.RVNBCO);
+            cmd.Parameters.AddWithValue("@RVUSIN", registroVentas.RVUSIN);
+            cmd.Parameters.AddWithValue("@RVFEIN", registroVentas.RVFEIN);
+            cmd.Parameters.AddWithValue("@RVHOIN", registroVentas.RVHOIN);
+            cmd.Parameters.AddWithValue("@RVUSMD", registroVentas.RVUSMD);
+            cmd.Parameters.AddWithValue("@RVFEMD", registroVentas.RVFEMD);
+            cmd.Parameters.AddWithValue("@RVHOMD", registroVentas.RVHOMD);
+            cmd.Parameters.AddWithValue("@RVREF1", registroVentas.RVREF1);
+            cmd.Parameters.AddWithValue("@RVREF2", registroVentas.RVREF2);
+            cmd.Parameters.AddWithValue("@RVREF3", registroVentas.RVREF3);
+            cmd.Parameters.AddWithValue("@RVREF4", registroVentas.RVREF4);
+            cmd.Parameters.AddWithValue("@RVREF5", registroVentas.RVREF5);
+            cmd.Parameters.AddWithValue("@RVHASH", registroVentas.RVHASH);
+            cmd.Parameters.AddWithValue("@RVSUNA", registroVentas.RVSUNA);
+            cmd.Parameters.AddWithValue("@RVGLOS", registroVentas.RVGLOS);
+
+            return await cmd.ExecuteNonQueryAsync();
+        }
+
+        private async Task InsertTregvDInConnection(OdbcConnection cn, OdbcTransaction? tx, RegistroVentasDetail registro)
         {
             string query = $@"Insert into {library}.tregvd (
                            RVEJER, RVPERI, RVTDOC, RVNDOC, RVSECU, RVDCTA, RVDCCO,
@@ -215,6 +330,8 @@ namespace OdooCls.Infrastucture.Repositorys
 
             using OdbcCommand cmd = new OdbcCommand(query, cn);
             cmd.CommandType = CommandType.Text;
+            if (tx != null)
+                cmd.Transaction = tx;
             cmd.Parameters.AddWithValue("@RVEJER", registro.RVEJER);
             cmd.Parameters.AddWithValue("@RVPERI", registro.RVPERI);
             cmd.Parameters.AddWithValue("@RVTDOC", registro.RVTDOC);
@@ -236,18 +353,30 @@ namespace OdooCls.Infrastucture.Repositorys
             await cmd.ExecuteNonQueryAsync();
         }
 
-        private async Task InsertCtxCInConnection(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc)
+        private async Task InsertCtxCInConnection(OdbcConnection cn, OdbcTransaction? tx, int ejercicio, int mes, string tipodoc, string nrodoc)
         {
-            string query = $@"INSERT INTO {library}.TCTXC
-            SELECT RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVFEVE, RVCCLI, RVMONE, RVTCAM, RVCPAG, RVPVTA, 0, RVPVTA, '02',
-                   CASE WHEN RVMONE = 0 THEN RVPVTA ELSE ROUND((RVPVTA * RVTCAM), 2) END, 0, RVTCAM,
-                   CASE WHEN RVMONE = 0 THEN ROUND((RVPVTA / RVTCAM), 2) ELSE RVPVTA END, 0, '', '', '',
-                   RVCCOB, RVCVEN, '', '', '', '', '', '', RVACTI, RVTGAS, RVCPVT, RVCOST, '', '', '', 0, 0
+            string query = $@"INSERT INTO {library}.TCTXC (
+                CCEJER, CCPERI, CCTDOC, CCNDOC, CCFECH, CCFEVE, CCCCLI, CCMONE, CCTCAM, CCCPAG,
+                CCPVTA, CCPACU, CCSALD, CCSITU, CCPVMN, CCPAMN, CCTCDO, CCPVDO, CCPADO,
+                CCSILC, CCNRID, CCCLGA, CCCCOB, CCCVEN, CCNCAN, CCHRF1, CCHRF2, CCHRF3, CCHRF4, CCHRF5,
+                CCACTI, CCTGAS, CCCTAC, CCCCTO, CCHR06, CCHR07, CCHR08, CCHR09, CCHR1O
+            )
+            SELECT
+                RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVFEVE, RVCCLI, RVMONE, RVTCAM, RVCPAG,
+                RVPVTA, 0, RVPVTA, '02',
+                CASE WHEN RVMONE = 0 THEN RVPVTA ELSE ROUND((RVPVTA * RVTCAM), 2) END, 0, RVTCAM,
+                CASE WHEN RVMONE = 0 THEN ROUND((RVPVTA / RVTCAM), 2) ELSE RVPVTA END, 0,
+                '', '', '', RVCCOB, RVCVEN,
+                '', '', '', '', '', '',
+                RVACTI, RVTGAS, '', RVCOST,
+                '', '', '', 0, 0
             FROM {library}.TREGV
             WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
 
             using OdbcCommand cmd = new OdbcCommand(query, cn);
             cmd.CommandType = CommandType.Text;
+            if (tx != null)
+                cmd.Transaction = tx;
             cmd.Parameters.AddWithValue("@RVEJER", ejercicio);
             cmd.Parameters.AddWithValue("@RVPERI", mes);
             cmd.Parameters.AddWithValue("@RVTDOC", tipodoc);
@@ -260,10 +389,11 @@ namespace OdooCls.Infrastucture.Repositorys
 
         private async Task CleanupPartialSalesInserts(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc)
         {
+            string deleteTctxc = $@"DELETE FROM {library}.TCTXC WHERE CCEJER = ? AND CCPERI = ? AND CCTDOC = ? AND CCNDOC = ?";
             string deleteTregvd = $@"DELETE FROM {library}.TREGVD WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
             string deleteTregv = $@"DELETE FROM {library}.TREGV WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
 
-            foreach (var query in new[] { deleteTregvd, deleteTregv })
+            foreach (var query in new[] { deleteTregvd, deleteTregv, deleteTctxc })
             {
                 using OdbcCommand cmd = new OdbcCommand(query, cn);
                 cmd.CommandType = CommandType.Text;
@@ -385,7 +515,11 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> ValidarExistenciaDocumento(int ejercicio, int mes, string Tipodoc, string nrodoc) 
         {
             bool rp = false;
-            var Query = $"select count(*) from {library}.tregv where RVEJER={ejercicio} and RVPERI={mes} and RVTDOC='{Tipodoc}' AND RVNDOC='{nrodoc}'";
+            var Query = $@"select count(*) from (
+                select 1 from {library}.tregv where RVEJER={ejercicio} and RVPERI={mes} and RVTDOC='{Tipodoc}' AND RVNDOC='{nrodoc}'
+                union all
+                select 1 from {library}.tctxc where CCEJER={ejercicio} and CCPERI={mes} and CCTDOC='{Tipodoc}' AND CCNDOC='{nrodoc}'
+            ) X";
 
             using (var connection = new OdbcConnection(connectionString))
             {

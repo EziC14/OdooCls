@@ -10,6 +10,7 @@ namespace OdooCls.Core.Interfaces
     public interface IRegistroVentasRepository
     {
         public Task<bool> InsertTregv(RegistroVentas registroVentas);
+        public Task<bool> InsertTregvAndCtxc(RegistroVentas registroVentas);
         public Task<bool> InsertTregvD(RegistroVentasDetail registro);
         public Task<bool> InsertCtxC(int ejercicio, int mes, string Tipodoc, string nrodoc);
        

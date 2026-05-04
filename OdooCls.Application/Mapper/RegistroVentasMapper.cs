@@ -53,22 +53,22 @@ namespace OdooCls.Application.Mapper
             };
 
             List<RegistroVentasDetail> detalle = new List<RegistroVentasDetail>();
-            foreach (RegistroVentasDetailDto q in registro.detalle)
+            foreach (RegistroVentasDetailDto q in registro.detalle ?? new List<RegistroVentasDetailDto>())
             {
-                detalle.Add(DtoToEntity(q));
+                detalle.Add(DtoToEntity(q, entity));
             }
             entity.RegistroVentasDetail = detalle;
             return entity;
         }
 
-        public static RegistroVentasDetail DtoToEntity(RegistroVentasDetailDto registro)
+        private static RegistroVentasDetail DtoToEntity(RegistroVentasDetailDto registro, RegistroVentas header)
         {
             var entity = new RegistroVentasDetail
             {
-                RVEJER = registro.RVEJER,
-                RVPERI = registro.RVPERI,
-                RVTDOC = registro.RVTDOC,
-                RVNDOC = registro.RVNDOC,
+                RVEJER = header.RVEJER,
+                RVPERI = header.RVPERI,
+                RVTDOC = header.RVTDOC,
+                RVNDOC = header.RVNDOC,
                 RVSECU = registro.RVSECU,
                 RVDCTA = registro.RVDCTA,
                 RVDCCO = registro.RVDCCO,
