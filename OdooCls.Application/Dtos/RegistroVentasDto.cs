@@ -46,6 +46,8 @@ namespace OdooCls.Application.Dtos
         public string RVNREF { get; set; } = "";
         [StringLength(1)]
         public string RVGRAB { get; set; } = "";
+        [StringLength(15)]
+        public string CCCTAC { get; set; } = "";
         public int RVFPRO { get; set; } = 0;
         public int RVHPRO { get; set; } = 0;
         public int RVFEVE { get; set; } = 0;

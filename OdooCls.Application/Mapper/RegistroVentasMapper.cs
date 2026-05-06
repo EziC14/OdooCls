@@ -38,6 +38,7 @@ namespace OdooCls.Application.Mapper
                 RVTREF = registro.RVTREF,
                 RVNREF = registro.RVNREF,
                 RVGRAB = registro.RVGRAB,
+                CCCTAC = registro.CCCTAC,
                 RVFPRO = registro.RVFPRO,
                 RVHPRO = registro.RVHPRO,
                 RVFEVE = registro.RVFEVE,
@@ -49,7 +50,8 @@ namespace OdooCls.Application.Mapper
                 RVCVEN = registro.RVCVEN,
                 RVUSIN = registro.RVUSIN,
                 RVFEIN = registro.RVFEIN,
-                RVHOIN = registro.RVHOIN
+                RVHOIN = registro.RVHOIN,
+                RVSUNA = "0"
             };
 
             List<RegistroVentasDetail> detalle = new List<RegistroVentasDetail>();

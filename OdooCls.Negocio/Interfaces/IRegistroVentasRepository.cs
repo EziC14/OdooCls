@@ -12,7 +12,7 @@ namespace OdooCls.Core.Interfaces
         public Task<bool> InsertTregv(RegistroVentas registroVentas);
         public Task<bool> InsertTregvAndCtxc(RegistroVentas registroVentas);
         public Task<bool> InsertTregvD(RegistroVentasDetail registro);
-        public Task<bool> InsertCtxC(int ejercicio, int mes, string Tipodoc, string nrodoc);
+        public Task<bool> InsertCtxC(int ejercicio, int mes, string Tipodoc, string nrodoc, string ccctac);
        
         /// <summary>
         /// Valida que el documento que se esta ingresando no exista en el registro de ventas 

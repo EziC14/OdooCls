@@ -49,6 +49,7 @@ namespace OdooCls.Core.Entities
         public string RVNREF { get; set; } = "";
         public string RVASTO { get; set; } = "";
         public string RVGRAB { get; set; } = "N";
+        public string CCCTAC { get; set; } = "";
         public int RVFPRO { get; set; } = 0;
         public int RVHPRO { get; set; } = 0;
         public int RVFEVE { get; set; } = 0;
