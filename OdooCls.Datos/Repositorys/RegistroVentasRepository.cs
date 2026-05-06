@@ -84,10 +84,6 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public async Task<bool> InsertCtxC(int ejercicio, int mes, string Tipodoc, string nrodoc, string ccctac)
         {
-            var ccctacValue = string.IsNullOrWhiteSpace(ccctac) ? "" : ccctac.Trim();
-            if (ccctacValue.Length > 15)
-                ccctacValue = ccctacValue.Substring(0, 15);
-
             string query = $@"INSERT INTO {library}.TCTXC (
                 CCEJER, CCPERI, CCTDOC, CCNDOC, CCFECH, CCFEVE, CCCCLI, CCMONE, CCTCAM, CCCPAG,
                 CCPVTA, CCPACU, CCSALD, CCSITU, CCPVMN, CCPAMN, CCTCDO, CCPVDO, CCPADO,
@@ -117,7 +113,7 @@ namespace OdooCls.Infrastucture.Repositorys
                     return false;
 
                 cmd.CommandType = CommandType.Text;
-                cmd.Parameters.AddWithValue("@CCCTAC", ccctacValue);
+                cmd.Parameters.AddWithValue("@CCCTAC", ccctac ?? "");
                 cmd.Parameters.AddWithValue("@RVEJER", ejercicio);
                 cmd.Parameters.AddWithValue("@RVPERI", mes);
                 cmd.Parameters.AddWithValue("@RVTDOC", Tipodoc);
@@ -360,10 +356,6 @@ namespace OdooCls.Infrastucture.Repositorys
 
         private async Task InsertCtxCInConnection(OdbcConnection cn, OdbcTransaction? tx, int ejercicio, int mes, string tipodoc, string nrodoc, string ccctac)
         {
-            var ccctacValue = string.IsNullOrWhiteSpace(ccctac) ? "" : ccctac.Trim();
-            if (ccctacValue.Length > 15)
-                ccctacValue = ccctacValue.Substring(0, 15);
-
             string query = $@"INSERT INTO {library}.TCTXC (
                 CCEJER, CCPERI, CCTDOC, CCNDOC, CCFECH, CCFEVE, CCCCLI, CCMONE, CCTCAM, CCCPAG,
                 CCPVTA, CCPACU, CCSALD, CCSITU, CCPVMN, CCPAMN, CCTCDO, CCPVDO, CCPADO,
@@ -386,7 +378,7 @@ namespace OdooCls.Infrastucture.Repositorys
             cmd.CommandType = CommandType.Text;
             if (tx != null)
                 cmd.Transaction = tx;
-            cmd.Parameters.AddWithValue("@CCCTAC", ccctacValue);
+            cmd.Parameters.AddWithValue("@CCCTAC", ccctac ?? "");
             cmd.Parameters.AddWithValue("@RVEJER", ejercicio);
             cmd.Parameters.AddWithValue("@RVPERI", mes);
             cmd.Parameters.AddWithValue("@RVTDOC", tipodoc);

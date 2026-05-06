@@ -76,7 +76,7 @@ namespace OdooCls.Core.Entities
         public decimal RVREF4 { get; set; } = 0;
         public decimal RVREF5 { get; set; } = 0;
         public string RVHASH { get; set; } = "FI";
-        public string RVSUNA { get; set; } = "";
+        public string RVSUNA { get; set; } = "0";
         public string RVGLOS { get; set; } = "";
         public List<RegistroVentasDetail>? RegistroVentasDetail { get; set; } = null;
     }
