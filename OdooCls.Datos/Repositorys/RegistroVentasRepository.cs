@@ -84,6 +84,7 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public async Task<bool> InsertCtxC(int ejercicio, int mes, string Tipodoc, string nrodoc, string ccctac)
         {
+            var ccctacLiteral = (ccctac ?? "").Replace("'", "''");
             string query = $@"INSERT INTO {library}.TCTXC (
                 CCEJER, CCPERI, CCTDOC, CCNDOC, CCFECH, CCFEVE, CCCCLI, CCMONE, CCTCAM, CCCPAG,
                 CCPVTA, CCPACU, CCSALD, CCSITU, CCPVMN, CCPAMN, CCTCDO, CCPVDO, CCPADO,
@@ -97,7 +98,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 CASE WHEN RVMONE = 0 THEN ROUND((RVPVTA / RVTCAM), 2) ELSE RVPVTA END, 0,
                 '', '', '', RVCCOB, RVCVEN,
                 '', '', '', '', '', '',
-                RVACTI, RVTGAS, ?, RVCOST,
+                RVACTI, RVTGAS, '{ccctacLiteral}', RVCOST,
                 '', '', '', 0, 0
             FROM {library}.TREGV
             WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
@@ -113,7 +114,6 @@ namespace OdooCls.Infrastucture.Repositorys
                     return false;
 
                 cmd.CommandType = CommandType.Text;
-                cmd.Parameters.AddWithValue("@CCCTAC", ccctac ?? "");
                 cmd.Parameters.AddWithValue("@RVEJER", ejercicio);
                 cmd.Parameters.AddWithValue("@RVPERI", mes);
                 cmd.Parameters.AddWithValue("@RVTDOC", Tipodoc);
@@ -356,6 +356,7 @@ namespace OdooCls.Infrastucture.Repositorys
 
         private async Task InsertCtxCInConnection(OdbcConnection cn, OdbcTransaction? tx, int ejercicio, int mes, string tipodoc, string nrodoc, string ccctac)
         {
+            var ccctacLiteral = (ccctac ?? "").Replace("'", "''");
             string query = $@"INSERT INTO {library}.TCTXC (
                 CCEJER, CCPERI, CCTDOC, CCNDOC, CCFECH, CCFEVE, CCCCLI, CCMONE, CCTCAM, CCCPAG,
                 CCPVTA, CCPACU, CCSALD, CCSITU, CCPVMN, CCPAMN, CCTCDO, CCPVDO, CCPADO,
@@ -369,7 +370,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 CASE WHEN RVMONE = 0 THEN ROUND((RVPVTA / RVTCAM), 2) ELSE RVPVTA END, 0,
                 '', '', '', RVCCOB, RVCVEN,
                 '', '', '', '', '', '',
-                RVACTI, RVTGAS, ?, RVCOST,
+                RVACTI, RVTGAS, '{ccctacLiteral}', RVCOST,
                 '', '', '', 0, 0
             FROM {library}.TREGV
             WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
@@ -378,7 +379,6 @@ namespace OdooCls.Infrastucture.Repositorys
             cmd.CommandType = CommandType.Text;
             if (tx != null)
                 cmd.Transaction = tx;
-            cmd.Parameters.AddWithValue("@CCCTAC", ccctac ?? "");
             cmd.Parameters.AddWithValue("@RVEJER", ejercicio);
             cmd.Parameters.AddWithValue("@RVPERI", mes);
             cmd.Parameters.AddWithValue("@RVTDOC", tipodoc);

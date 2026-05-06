@@ -51,7 +51,7 @@ namespace OdooCls.Application.Mapper
                 RVUSIN = registro.RVUSIN,
                 RVFEIN = registro.RVFEIN,
                 RVHOIN = registro.RVHOIN,
-                RVSUNA = "0"
+                RVSUNA = 0
             };
 
             List<RegistroVentasDetail> detalle = new List<RegistroVentasDetail>();
