@@ -85,23 +85,9 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> InsertCtxC(int ejercicio, int mes, string Tipodoc, string nrodoc, string ccctac)
         {
             var ccctacLiteral = (ccctac ?? "").Replace("'", "''");
-            string query = $@"INSERT INTO {library}.TCTXC (
-                CCEJER, CCPERI, CCTDOC, CCNDOC, CCFECH, CCFEVE, CCCCLI, CCMONE, CCTCAM, CCCPAG,
-                CCPVTA, CCPACU, CCSALD, CCSITU, CCPVMN, CCPAMN, CCTCDO, CCPVDO, CCPADO,
-                CCSILC, CCNRID, CCCLGA, CCCCOB, CCCVEN, CCNCAN, CCHRF1, CCHRF2, CCHRF3, CCHRF4, CCHRF5,
-                CCACTI, CCTGAS, CCCTAC, CCCCTO, CCHR06, CCHR07, CCHR08, CCHR09, CCHR1O
-            )
-            SELECT
-                RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVFEVE, RVCCLI, RVMONE, RVTCAM, RVCPAG,
-                RVPVTA, 0, RVPVTA, '02',
-                CASE WHEN RVMONE = 0 THEN RVPVTA ELSE ROUND((RVPVTA * RVTCAM), 2) END, 0, RVTCAM,
-                CASE WHEN RVMONE = 0 THEN ROUND((RVPVTA / RVTCAM), 2) ELSE RVPVTA END, 0,
-                '', '', '', RVCCOB, RVCVEN,
-                '', '', '', '', '', '',
-                RVACTI, RVTGAS, '{ccctacLiteral}', RVCOST,
-                '', '', '', 0, 0
-            FROM {library}.TREGV
-            WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
+            string query = IsNotaCreditoDebito(Tipodoc)
+                ? BuildCtxcNcNdInsertQuery(ccctacLiteral)
+                : BuildCtxcStandardInsertQuery(ccctacLiteral);
 
             try
             {
@@ -357,7 +343,36 @@ namespace OdooCls.Infrastucture.Repositorys
         private async Task InsertCtxCInConnection(OdbcConnection cn, OdbcTransaction? tx, int ejercicio, int mes, string tipodoc, string nrodoc, string ccctac)
         {
             var ccctacLiteral = (ccctac ?? "").Replace("'", "''");
-            string query = $@"INSERT INTO {library}.TCTXC (
+            string query = IsNotaCreditoDebito(tipodoc)
+                ? BuildCtxcNcNdInsertQuery(ccctacLiteral)
+                : BuildCtxcStandardInsertQuery(ccctacLiteral);
+
+            using OdbcCommand cmd = new OdbcCommand(query, cn);
+            cmd.CommandType = CommandType.Text;
+            if (tx != null)
+                cmd.Transaction = tx;
+            cmd.Parameters.AddWithValue("@RVEJER", ejercicio);
+            cmd.Parameters.AddWithValue("@RVPERI", mes);
+            cmd.Parameters.AddWithValue("@RVTDOC", tipodoc);
+            cmd.Parameters.AddWithValue("@RVNDOC", nrodoc);
+
+            var rowsAffected = await cmd.ExecuteNonQueryAsync();
+            if (rowsAffected <= 0)
+                throw new Exception("No se insertaron filas en TCTXC");
+        }
+
+        private static bool IsNotaCreditoDebito(string? tipo)
+        {
+            if (string.IsNullOrWhiteSpace(tipo))
+                return false;
+
+            var t = tipo.Trim().ToUpperInvariant();
+            return t == "NC" || t == "ND";
+        }
+
+        private string BuildCtxcStandardInsertQuery(string ccctacLiteral)
+        {
+            return $@"INSERT INTO {library}.TCTXC (
                 CCEJER, CCPERI, CCTDOC, CCNDOC, CCFECH, CCFEVE, CCCCLI, CCMONE, CCTCAM, CCCPAG,
                 CCPVTA, CCPACU, CCSALD, CCSITU, CCPVMN, CCPAMN, CCTCDO, CCPVDO, CCPADO,
                 CCSILC, CCNRID, CCCLGA, CCCCOB, CCCVEN, CCNCAN, CCHRF1, CCHRF2, CCHRF3, CCHRF4, CCHRF5,
@@ -374,19 +389,39 @@ namespace OdooCls.Infrastucture.Repositorys
                 '', '', '', 0, 0
             FROM {library}.TREGV
             WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
+        }
 
-            using OdbcCommand cmd = new OdbcCommand(query, cn);
-            cmd.CommandType = CommandType.Text;
-            if (tx != null)
-                cmd.Transaction = tx;
-            cmd.Parameters.AddWithValue("@RVEJER", ejercicio);
-            cmd.Parameters.AddWithValue("@RVPERI", mes);
-            cmd.Parameters.AddWithValue("@RVTDOC", tipodoc);
-            cmd.Parameters.AddWithValue("@RVNDOC", nrodoc);
-
-            var rowsAffected = await cmd.ExecuteNonQueryAsync();
-            if (rowsAffected <= 0)
-                throw new Exception("No se insertaron filas en TCTXC");
+        private string BuildCtxcNcNdInsertQuery(string ccctacLiteral)
+        {
+            return $@"INSERT INTO {library}.TCTXC (
+                CCEJER, CCPERI, CCTDOC, CCNDOC, CCFECH, CCFEVE, CCCCLI, CCMONE, CCTCAM, CCCPAG,
+                CCPVTA, CCPACU, CCSALD, CCSITU, CCPVMN, CCPAMN, CCTCDO, CCPVDO, CCPADO,
+                CCSILC, CCNRID, CCCLGA, CCCCOB, CCCVEN, CCNCAN, CCHRF1, CCHRF2, CCHRF3, CCHRF4, CCHRF5,
+                CCACTI, CCTGAS, CCCTAC, CCCCTO, CCHR06, CCHR07, CCHR08, CCHR09, CCHR1O
+            )
+            SELECT
+                RVEJER, RVPERI, RVTDOC, RVNDOC, RVFECH, RVFEVE, RVCCLI, RVMONE, RVTCAM, RVCPAG,
+                (RVPVTA * CASE WHEN RVTDOC = 'NC' THEN -1 ELSE 1 END),
+                0,
+                (RVPVTA * CASE WHEN RVTDOC = 'NC' THEN -1 ELSE 1 END),
+                '02',
+                CASE
+                    WHEN RVMONE = 0 THEN (RVPVTA * CASE WHEN RVTDOC = 'NC' THEN -1 ELSE 1 END)
+                    ELSE ROUND((RVPVTA * RVTCAM) * CASE WHEN RVTDOC = 'NC' THEN -1 ELSE 1 END, 2)
+                END,
+                0,
+                RVTCAM,
+                CASE
+                    WHEN RVMONE = 0 THEN CASE WHEN RVTCAM = 0 THEN 0 ELSE ROUND((RVPVTA / RVTCAM) * CASE WHEN RVTDOC = 'NC' THEN -1 ELSE 1 END, 2) END
+                    ELSE (RVPVTA * CASE WHEN RVTDOC = 'NC' THEN -1 ELSE 1 END)
+                END,
+                0,
+                '', '', '', RVCCOB, RVCVEN,
+                '', '', '', '', '', '',
+                RVACTI, RVTGAS, '{ccctacLiteral}', RVCOST,
+                '', '', '', 0, 0
+            FROM {library}.TREGV
+            WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?";
         }
 
         private async Task CleanupPartialSalesInserts(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc)
