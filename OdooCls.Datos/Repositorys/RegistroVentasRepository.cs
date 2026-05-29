@@ -631,6 +631,95 @@ namespace OdooCls.Infrastucture.Repositorys
             return rp;
         }
 
+        public async Task<ExcedenteLineaCredito?> GetExcedenteLineaCredito(string clienteId, int? fecha)
+        {
+            if (string.IsNullOrWhiteSpace(clienteId))
+                throw new ArgumentException("clienteId es obligatorio", nameof(clienteId));
+
+            decimal lineaCreditoBase = 0m;
+            decimal tipoCambio = 0m;
+            decimal totalUsado = 0m;
+            int cantidadDocumentosVencidos = 0;
+            int fechaCorte = fecha ?? int.Parse(DateTime.Now.ToString("yyyyMMdd"));
+
+            using (var connection = new OdbcConnection(connectionString))
+            {
+                await connection.OpenAsync();
+
+                if (!CallLibreria(connection))
+                    return null;
+
+                var q1 = $@"select
+                                COALESCE(c.CLILCR,0) as LineaCredito,
+                                COALESCE(t.MONTC1,0) as TipoCambio,
+                                COALESCE(sum(COALESCE(x.CCPVMN,0)),0) as TotalUsado
+                            from {library}.TCLIE c
+                            left join {library}.TCTXC x
+                                on x.CCCCLI = c.CLICVE
+                               and x.CCSALD > 0";
+
+                if (fecha.HasValue)
+                    q1 += " and x.CCFECH <= ?";
+
+                q1 += $@"
+                            inner join {library}.TTICA t
+                                on t.MONFEC = (select max(MONFEC) from {library}.TTICA)
+                            where c.CLICVE = ?
+                            group by c.CLICVE, c.CLILCR, t.MONTC1";
+
+                using (var cmd = new OdbcCommand(q1, connection))
+                {
+                    cmd.CommandType = CommandType.Text;
+                    if (fecha.HasValue)
+                        cmd.Parameters.AddWithValue("@ccfech", fecha.Value);
+                    cmd.Parameters.AddWithValue("@clicve", clienteId);
+
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
+                    {
+                        lineaCreditoBase = reader.IsDBNull(0) ? 0m : Convert.ToDecimal(reader.GetValue(0));
+                        tipoCambio = reader.IsDBNull(1) ? 0m : Convert.ToDecimal(reader.GetValue(1));
+                        totalUsado = reader.IsDBNull(2) ? 0m : Convert.ToDecimal(reader.GetValue(2));
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+
+                var q2 = $@"select count(1)
+                            from {library}.TCTXC
+                            where CCCCLI = ?
+                              and CCTDOC in ('FC','BV')
+                              and CCSALD > 0
+                              and CCFEVE < ?";
+
+                using (var cmd = new OdbcCommand(q2, connection))
+                {
+                    cmd.CommandType = CommandType.Text;
+                    cmd.Parameters.AddWithValue("@ccccli", clienteId);
+                    cmd.Parameters.AddWithValue("@ccfeve", fechaCorte);
+
+                    var res = await cmd.ExecuteScalarAsync();
+                    if (res != null && res != DBNull.Value)
+                        cantidadDocumentosVencidos = Convert.ToInt32(res);
+                }
+            }
+
+            var lineaCredito = lineaCreditoBase * tipoCambio;
+            var saldoDisponible = lineaCredito - totalUsado;
+            var excedente = Math.Max(0m, totalUsado - lineaCredito);
+
+            return new ExcedenteLineaCredito
+            {
+                ClienteId = clienteId,
+                LineaCredito = lineaCredito,
+                SaldoActual = saldoDisponible,
+                Excedente = excedente,
+                CantidadDocumentosVencidos = cantidadDocumentosVencidos
+            };
+        }
+
         /// <summary>
         /// Valida que el tipo de documento Exista, false que no se encuentra
         /// </summary>

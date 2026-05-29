@@ -68,6 +68,37 @@ namespace OdooCls.API.Controllers
             }
     }
 
+        [HttpGet]
+        [Route("excedente-linea-credito")]
+        public async Task<IActionResult> GetExcedenteLineaCredito([FromQuery] string clienteId, [FromQuery] int? fecha)
+        {
+            try
+            {
+                var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+                if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer"))
+                {
+                    return Unauthorized(new { message = "Falta el token Bearer" });
+                }
+
+                var token = authHeader.Substring("Bearer ".Length).Trim();
+                if (token != VALID_TOKEN)
+                {
+                    return Unauthorized(new { message = "Token no válido" });
+                }
+
+                var response = await registroVentasApplication.GetExcedenteLineaCreditoAsync(clienteId, fecha);
+                if (response.HttpStatusCode == 200)
+                    return Ok(response);
+
+                return StatusCode(response.HttpStatusCode, response);
+            }
+            catch (Exception ex)
+            {
+                var errorResponse = new ApiResponse<ExcedenteLineaCreditoDto>(500, 500, $"Error interno del servidor: {ex.Message}");
+                return StatusCode(500, errorResponse);
+            }
+        }
+
 
     }
 }

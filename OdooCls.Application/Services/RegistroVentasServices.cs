@@ -106,5 +106,44 @@ namespace OdooCls.Application.Services
             }
 
         }
+
+        public async Task<ApiResponse<ExcedenteLineaCreditoDto>> GetExcedenteLineaCreditoAsync(string clienteId, int? fecha)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(clienteId))
+                    return new ApiResponse<ExcedenteLineaCreditoDto>(400, 2001, "clienteId es obligatorio");
+
+                clienteId = clienteId.Trim();
+                if (clienteId.Length > 10)
+                    return new ApiResponse<ExcedenteLineaCreditoDto>(400, 2003, "clienteId excede el maximo permitido (10)");
+
+                if (fecha.HasValue)
+                {
+                    var f = fecha.Value;
+                    if (f < 19000101 || f > 29991231)
+                        return new ApiResponse<ExcedenteLineaCreditoDto>(400, 2004, "fecha debe tener formato yyyymmdd");
+                }
+
+                var result = await Registro.GetExcedenteLineaCredito(clienteId, fecha);
+                if (result == null)
+                    return new ApiResponse<ExcedenteLineaCreditoDto>(404, 2002, "Cliente no encontrado");
+
+                var dto = new ExcedenteLineaCreditoDto
+                {
+                    ClienteId = result.ClienteId,
+                    LineaCredito = result.LineaCredito,
+                    SaldoActual = result.SaldoActual,
+                    Excedente = result.Excedente,
+                    CantidadDocumentosVencidos = result.CantidadDocumentosVencidos
+                };
+
+                return new ApiResponse<ExcedenteLineaCreditoDto>(200, 1000, "OK", dto);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<ExcedenteLineaCreditoDto>(500, 500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
     }
 }

@@ -34,6 +34,7 @@ namespace OdooCls.Core.Interfaces
         public Task<bool> ValidatTipoDoc(string tipo);
         public Task<bool> ValidaCliente(string codclie);
         public Task<bool> ValidaMoneda(int moneda);
+        public Task<ExcedenteLineaCredito?> GetExcedenteLineaCredito(string clienteId, int? fecha);
 
     }
 }
