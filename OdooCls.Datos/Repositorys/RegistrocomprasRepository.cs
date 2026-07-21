@@ -377,7 +377,11 @@ namespace OdooCls.Infrastucture.Repositorys
 
         private async Task InsertCtxpInConnection(OdbcConnection cn, RegistroCompras registro)
         {
-            if (EsTipoDetraccion(registro.RCTDOC) && registro.RCRET1 > 0)
+            if (EsNotaCredito(registro.RCTDOC))
+            {
+                await InsertCtxpRow(cn, registro, registro.RCTDOC, -registro.RCPVTA);
+            }
+            else if (EsTipoDetraccion(registro.RCTDOC) && registro.RCRET1 > 0)
             {
                 decimal neto = registro.RCPVTA - registro.RCRET1;
                 await InsertCtxpRow(cn, registro, registro.RCTDOC, neto);
@@ -387,6 +391,11 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 await InsertCtxpRow(cn, registro, registro.RCTDOC, registro.RCPVTA);
             }
+        }
+
+        private static bool EsNotaCredito(string? tipoDoc)
+        {
+            return !string.IsNullOrWhiteSpace(tipoDoc) && tipoDoc.Trim().Equals("NC", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task InsertCtxpRow(OdbcConnection cn, RegistroCompras r, string tipoDoc, decimal monto)
