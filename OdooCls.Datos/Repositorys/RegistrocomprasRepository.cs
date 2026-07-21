@@ -332,7 +332,7 @@ namespace OdooCls.Infrastucture.Repositorys
                         return false;
                 }
 
-                await InsertCtxpInConnection(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC);
+                await InsertCtxpInConnection(cn, registro);
                 return true;
             }
             catch (OdbcException ex)
@@ -365,6 +365,132 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
+        private static readonly HashSet<string> TiposDetraccion = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "DA", "D2", "D7", "D3", "D8", "D1", "D6", "DZ", "D5", "D9", "D4"
+        };
+
+        private static bool EsTipoDetraccion(string? tipoDoc)
+        {
+            return !string.IsNullOrWhiteSpace(tipoDoc) && TiposDetraccion.Contains(tipoDoc.Trim());
+        }
+
+        private async Task InsertCtxpInConnection(OdbcConnection cn, RegistroCompras registro)
+        {
+            if (EsTipoDetraccion(registro.RCTDOC) && registro.RCRET1 > 0)
+            {
+                decimal neto = registro.RCPVTA - registro.RCRET1;
+                await InsertCtxpRow(cn, registro, registro.RCTDOC, neto);
+                await InsertCtxpRow(cn, registro, "99", registro.RCRET1);
+            }
+            else
+            {
+                await InsertCtxpRow(cn, registro, registro.RCTDOC, registro.RCPVTA);
+            }
+        }
+
+        private async Task InsertCtxpRow(OdbcConnection cn, RegistroCompras r, string tipoDoc, decimal monto)
+        {
+            string query = $@"INSERT INTO {library}.tctxp (
+                XPEJER, XPPERI, XPTDOC, XPNDOC, XPFECH, XPFEVE, XPRCXP, XPCPRO, XPCPAG,
+                XPMONE, XPTCMO, XPPVMO, XPPAMO, XPPVMN, XPPAMN, XPTCDO, XPPVDO, XPPADO,
+                XPSITU, XPPFPA, XPPBCO, XPPIMP, XPPMON, XPACTI, XPTGAS, XPCTAC, XPCCTO,
+                XPRF01, XPRF02, XPRF03, XPRF04, XPRF05
+            ) VALUES (
+                ?,?,?,?,?,?,?,?,?,
+                ?,?,?,?,?,?,?,?,?,
+                ?,?,?,?,?,?,?,?,?,
+                ?,?,?,?,?
+            )";
+
+            decimal pvmn = r.RCMONE == 0 ? monto : Math.Round(monto * r.RCTCAM, 2);
+            decimal pvdo = r.RCMONE == 0
+                ? (r.RCTCAM == 0 ? 0 : Math.Round(monto / r.RCTCAM, 2))
+                : monto;
+
+            using OdbcCommand cmd = new OdbcCommand(query, cn);
+            cmd.Parameters.AddWithValue("@XPEJER", r.RCEJER);
+            cmd.Parameters.AddWithValue("@XPPERI", r.RCPERI);
+            cmd.Parameters.AddWithValue("@XPTDOC", Trunc(tipoDoc, 2));
+            cmd.Parameters.AddWithValue("@XPNDOC", Trunc(r.RCNDOC, 15));
+            cmd.Parameters.AddWithValue("@XPFECH", r.RCFECH);
+            cmd.Parameters.AddWithValue("@XPFEVE", r.RCFEVE);
+            cmd.Parameters.AddWithValue("@XPRCXP", Trunc(r.RCRCXP, 10));
+            cmd.Parameters.AddWithValue("@XPCPRO", Trunc(r.RCCPRO, 10));
+            cmd.Parameters.AddWithValue("@XPCPAG", Trunc(r.RCCPAG, 3));
+            cmd.Parameters.AddWithValue("@XPMONE", r.RCMONE);
+            cmd.Parameters.AddWithValue("@XPTCMO", r.RCTCAM);
+            cmd.Parameters.AddWithValue("@XPPVMO", monto);
+            cmd.Parameters.AddWithValue("@XPPAMO", 0m);
+            cmd.Parameters.AddWithValue("@XPPVMN", pvmn);
+            cmd.Parameters.AddWithValue("@XPPAMN", 0m);
+            cmd.Parameters.AddWithValue("@XPTCDO", r.RCTCAM);
+            cmd.Parameters.AddWithValue("@XPPVDO", pvdo);
+            cmd.Parameters.AddWithValue("@XPPADO", 0m);
+            cmd.Parameters.AddWithValue("@XPSITU", Trunc(r.RCSITU, 2));
+            cmd.Parameters.AddWithValue("@XPPFPA", 0);
+            cmd.Parameters.AddWithValue("@XPPBCO", "");
+            cmd.Parameters.AddWithValue("@XPPIMP", 0m);
+            cmd.Parameters.AddWithValue("@XPPMON", 0m);
+            cmd.Parameters.AddWithValue("@XPACTI", "");
+            cmd.Parameters.AddWithValue("@XPTGAS", "");
+            cmd.Parameters.AddWithValue("@XPCTAC", Trunc(r.RCCPVT, 15));
+            cmd.Parameters.AddWithValue("@XPCCTO", Trunc(r.RCCOST, 15));
+            cmd.Parameters.AddWithValue("@XPRF01", "");
+            cmd.Parameters.AddWithValue("@XPRF02", "");
+            cmd.Parameters.AddWithValue("@XPRF03", "");
+            cmd.Parameters.AddWithValue("@XPRF04", 0);
+            cmd.Parameters.AddWithValue("@XPRF05", 0);
+
+            try
+            {
+                var rows = await cmd.ExecuteNonQueryAsync();
+                if (rows <= 0)
+                    throw new Exception($"No se insertaron filas en TCTXP para {tipoDoc}-{r.RCNDOC}");
+            }
+            catch (OdbcException ex) when (ex.Message.Contains("SQL0803"))
+            {
+                string qRcxp = $"SELECT COALESCE(MAX(RCRCXP), '') FROM {library}.TREGC WHERE RCEJER=? AND RCPERI=? AND RCTDOC=? AND RCNDOC=?";
+                string rcxp;
+                using (var cmdRc = new OdbcCommand(qRcxp, cn))
+                {
+                    cmdRc.Parameters.AddWithValue("@RCEJER", r.RCEJER);
+                    cmdRc.Parameters.AddWithValue("@RCPERI", r.RCPERI);
+                    cmdRc.Parameters.AddWithValue("@RCTDOC", Trunc(r.RCTDOC, 2));
+                    cmdRc.Parameters.AddWithValue("@RCNDOC", Trunc(r.RCNDOC, 15));
+                    rcxp = Convert.ToString(await cmdRc.ExecuteScalarAsync()) ?? "";
+                }
+
+                int countDoc;
+                using (var cmdDoc = new OdbcCommand(
+                    $"SELECT COUNT(*) FROM {library}.TCTXP WHERE XPEJER=? AND XPPERI=? AND XPTDOC=? AND XPNDOC=?", cn))
+                {
+                    cmdDoc.Parameters.AddWithValue("@XPEJER", r.RCEJER);
+                    cmdDoc.Parameters.AddWithValue("@XPPERI", r.RCPERI);
+                    cmdDoc.Parameters.AddWithValue("@XPTDOC", Trunc(r.RCTDOC, 2));
+                    cmdDoc.Parameters.AddWithValue("@XPNDOC", Trunc(r.RCNDOC, 15));
+                    countDoc = Convert.ToInt32(await cmdDoc.ExecuteScalarAsync() ?? 0);
+                }
+
+                int countRcxp;
+                using (var cmdRcxp = new OdbcCommand(
+                    $"SELECT COUNT(*) FROM {library}.TCTXP WHERE XPEJER=? AND XPPERI=? AND XPRCXP=?", cn))
+                {
+                    cmdRcxp.Parameters.AddWithValue("@XPEJER", r.RCEJER);
+                    cmdRcxp.Parameters.AddWithValue("@XPPERI", r.RCPERI);
+                    cmdRcxp.Parameters.AddWithValue("@XPRCXP", Trunc(rcxp, 10));
+                    countRcxp = Convert.ToInt32(await cmdRcxp.ExecuteScalarAsync() ?? 0);
+                }
+
+                throw;
+            }
+            catch (OdbcException ex)
+            {
+                throw new Exception($"[InsertCtxpInConnection] ODBC {BuildOdbcDiagnostics(ex)}", ex);
+            }
+        }
+
+        // Mantiene firma anterior para InsertCtxp (sin detracción)
         private async Task InsertCtxpInConnection(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc)
         {
             string queryCtxp = $@"INSERT INTO {library}.tctxp (
