@@ -395,9 +395,8 @@ namespace OdooCls.Infrastucture.Repositorys
             }
             else if (EsTipoDetraccion(registro.RCTDOC) && registro.RCRET1 > 0)
             {
-                decimal neto = registro.RCPVTA - registro.RCRET1;
-                Console.WriteLine($"[LOG] => DETRACCION, fila1: tipo={registro.RCTDOC} monto={neto}, fila2: tipo=99 monto={registro.RCRET1}");
-                await InsertCtxpRow(cn, registro, registro.RCTDOC, neto);
+                Console.WriteLine($"[LOG] => DETRACCION, fila1: tipo={registro.RCTDOC} monto={registro.RCPVTA}, fila2: tipo=99 monto={registro.RCRET1}");
+                await InsertCtxpRow(cn, registro, registro.RCTDOC, registro.RCPVTA);
 
                 var rcxp99 = ObtenerRcxpSiguiente(registro.RCRCXP);
                 Console.WriteLine($"[LOG] XPRCXP fila99: {rcxp99} (D6: {registro.RCRCXP})");
