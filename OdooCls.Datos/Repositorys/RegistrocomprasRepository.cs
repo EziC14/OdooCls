@@ -268,6 +268,7 @@ namespace OdooCls.Infrastucture.Repositorys
             RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCRET1,RCCRE1,RCMRE1,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
             RCFEVE,RCNDOM,RCCPAG,RCSITU,RCFREF,RCUSIN,RCFEIN,RCHOIN,RCRVVA,RCREF7,RCCBSA
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            string rcxpTregc = registro.RCRCXP;
             try
             {
                 ValidateInsertPlaceholders(queryTregc, 46);
@@ -276,6 +277,15 @@ namespace OdooCls.Infrastucture.Repositorys
 
                 if (!CallLibreria(cn))
                     return false;
+
+                // Para detracción: override RCRCXP c/r a TCTXP.XPRCXP, no al correlativo del service
+                if (EsTipoDetraccion(registro.RCTDOC) && registro.RCRET1 > 0)
+                {
+                    var xprcxpBase = await ObtenerSiguienteXprcxp(cn, registro.RCEJER, registro.RCPERI);
+                    Console.WriteLine($"[LOG] Detraccion: XPRCXP base={xprcxpBase} (service mando {registro.RCRCXP})");
+                    registro.RCRCXP = xprcxpBase;
+                }
+                rcxpTregc = registro.RCRCXP;
 
                 using (var cmdTregc = new OdbcCommand(queryTregc, cn))
                 {
@@ -344,7 +354,7 @@ namespace OdooCls.Infrastucture.Repositorys
                     using OdbcConnection cnCleanup = new OdbcConnection(connectionString);
                     await cnCleanup.OpenAsync();
                     if (CallLibreria(cnCleanup))
-                        await CleanupPartialPurchasesInserts(cnCleanup, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP);
+                        await CleanupPartialPurchasesInserts(cnCleanup, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, rcxpTregc);
                 }
                 catch { }
 
@@ -357,7 +367,7 @@ namespace OdooCls.Infrastucture.Repositorys
                     using OdbcConnection cnCleanup = new OdbcConnection(connectionString);
                     await cnCleanup.OpenAsync();
                     if (CallLibreria(cnCleanup))
-                        await CleanupPartialPurchasesInserts(cnCleanup, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP);
+                        await CleanupPartialPurchasesInserts(cnCleanup, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, rcxpTregc);
                 }
                 catch { }
 
@@ -388,6 +398,10 @@ namespace OdooCls.Infrastucture.Repositorys
                 decimal neto = registro.RCPVTA - registro.RCRET1;
                 Console.WriteLine($"[LOG] => DETRACCION, fila1: tipo={registro.RCTDOC} monto={neto}, fila2: tipo=99 monto={registro.RCRET1}");
                 await InsertCtxpRow(cn, registro, registro.RCTDOC, neto);
+
+                var rcxp99 = ObtenerRcxpSiguiente(registro.RCRCXP);
+                Console.WriteLine($"[LOG] XPRCXP fila99: {rcxp99} (D6: {registro.RCRCXP})");
+                registro.RCRCXP = rcxp99;
                 await InsertCtxpRow(cn, registro, "99", registro.RCRET1);
             }
             else
@@ -395,6 +409,52 @@ namespace OdooCls.Infrastucture.Repositorys
                 Console.WriteLine($"[LOG] => NORMAL, monto={registro.RCPVTA}");
                 await InsertCtxpRow(cn, registro, registro.RCTDOC, registro.RCPVTA);
             }
+        }
+
+        private static string ObtenerRcxpSiguiente(string? rcxp)
+        {
+            if (string.IsNullOrWhiteSpace(rcxp) || rcxp.Length < 6)
+                return (rcxp ?? "") + "01";
+
+            string prefix = rcxp.Substring(0, rcxp.Length - 5);
+            string corrStr = rcxp.Substring(rcxp.Length - 5);
+
+            if (int.TryParse(corrStr, out int corr))
+            {
+                corr++;
+                if (corr > 99999) corr = 1;
+                return prefix + corr.ToString("D5");
+            }
+
+            return rcxp + "01";
+        }
+
+        private async Task<string> ObtenerSiguienteXprcxp(OdbcConnection cn, int ejercicio, int mes)
+        {
+            string monthChar = mes >= 10 ? ((char)(64 + mes)).ToString() : mes.ToString();
+            string prefix = ejercicio.ToString() + monthChar;
+
+            string query = $@"SELECT COALESCE(MAX(XPRCXP), '') FROM {library}.TCTXP
+                              WHERE XPEJER = ? AND XPPERI = ? AND XPRCXP LIKE ?";
+
+            using OdbcCommand cmd = new OdbcCommand(query, cn);
+            cmd.Parameters.AddWithValue("@XPEJER", ejercicio);
+            cmd.Parameters.AddWithValue("@XPPERI", mes);
+            cmd.Parameters.AddWithValue("@LIKE", prefix + "%");
+
+            var result = await cmd.ExecuteScalarAsync();
+            string maxXprcxp = result?.ToString()?.Trim() ?? "";
+
+            if (string.IsNullOrWhiteSpace(maxXprcxp) || maxXprcxp.Length < 6)
+                return prefix + "00001";
+
+            string corrStr = maxXprcxp.Substring(maxXprcxp.Length - 5);
+            if (!int.TryParse(corrStr, out int corr))
+                return prefix + "00001";
+
+            corr++;
+            if (corr > 99999) corr = 1;
+            return prefix + corr.ToString("D5");
         }
 
         private static bool EsNotaCredito(string? tipoDoc)
