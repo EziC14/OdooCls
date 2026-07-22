@@ -459,7 +459,9 @@ namespace OdooCls.Infrastucture.Repositorys
 
         private static bool EsNotaCredito(string? tipoDoc)
         {
-            return !string.IsNullOrWhiteSpace(tipoDoc) && tipoDoc.Trim().Equals("NC", StringComparison.OrdinalIgnoreCase);
+            return !string.IsNullOrWhiteSpace(tipoDoc) && 
+                (tipoDoc.Trim().Equals("NC", StringComparison.OrdinalIgnoreCase) ||
+                 tipoDoc.Trim().Equals("NE", StringComparison.OrdinalIgnoreCase));
         }
 
         private async Task InsertCtxpRow(OdbcConnection cn, RegistroCompras r, string tipoDoc, decimal monto)
