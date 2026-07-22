@@ -377,18 +377,22 @@ namespace OdooCls.Infrastucture.Repositorys
 
         private async Task InsertCtxpInConnection(OdbcConnection cn, RegistroCompras registro)
         {
+            Console.WriteLine($"[LOG InsertCtxpInConnection] RCTDOC={registro.RCTDOC}, RCNDOC={registro.RCNDOC}, RCPVTA={registro.RCPVTA}, RCRET1={registro.RCRET1}");
             if (EsNotaCredito(registro.RCTDOC))
             {
+                Console.WriteLine($"[LOG] => NC, monto={-registro.RCPVTA}");
                 await InsertCtxpRow(cn, registro, registro.RCTDOC, -registro.RCPVTA);
             }
             else if (EsTipoDetraccion(registro.RCTDOC) && registro.RCRET1 > 0)
             {
                 decimal neto = registro.RCPVTA - registro.RCRET1;
+                Console.WriteLine($"[LOG] => DETRACCION, fila1: tipo={registro.RCTDOC} monto={neto}, fila2: tipo=99 monto={registro.RCRET1}");
                 await InsertCtxpRow(cn, registro, registro.RCTDOC, neto);
                 await InsertCtxpRow(cn, registro, "99", registro.RCRET1);
             }
             else
             {
+                Console.WriteLine($"[LOG] => NORMAL, monto={registro.RCPVTA}");
                 await InsertCtxpRow(cn, registro, registro.RCTDOC, registro.RCPVTA);
             }
         }
@@ -416,6 +420,8 @@ namespace OdooCls.Infrastucture.Repositorys
             decimal pvdo = r.RCMONE == 0
                 ? (r.RCTCAM == 0 ? 0 : Math.Round(monto / r.RCTCAM, 2))
                 : monto;
+
+            Console.WriteLine($"[LOG InsertCtxpRow] tctxp: tipo={tipoDoc} ndoc={r.RCNDOC} monto={monto} rcxp={Trunc(r.RCRCXP, 10)}");
 
             using OdbcCommand cmd = new OdbcCommand(query, cn);
             cmd.Parameters.AddWithValue("@XPEJER", r.RCEJER);
@@ -476,7 +482,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 {
                     cmdDoc.Parameters.AddWithValue("@XPEJER", r.RCEJER);
                     cmdDoc.Parameters.AddWithValue("@XPPERI", r.RCPERI);
-                    cmdDoc.Parameters.AddWithValue("@XPTDOC", Trunc(r.RCTDOC, 2));
+                    cmdDoc.Parameters.AddWithValue("@XPTDOC", Trunc(tipoDoc, 2));
                     cmdDoc.Parameters.AddWithValue("@XPNDOC", Trunc(r.RCNDOC, 15));
                     countDoc = Convert.ToInt32(await cmdDoc.ExecuteScalarAsync() ?? 0);
                 }
@@ -491,6 +497,7 @@ namespace OdooCls.Infrastucture.Repositorys
                     countRcxp = Convert.ToInt32(await cmdRcxp.ExecuteScalarAsync() ?? 0);
                 }
 
+                Console.WriteLine($"[LOG SQL0803] tipoDoc={tipoDoc} ndoc={r.RCNDOC} rcxp={rcxp} countDoc={countDoc} countRcxp={countRcxp}");
                 throw;
             }
             catch (OdbcException ex)
@@ -574,8 +581,18 @@ namespace OdooCls.Infrastucture.Repositorys
 
         private async Task CleanupPartialPurchasesInserts(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc, string rcxpx)
         {
+            string deleteTctxp99 = $@"DELETE FROM {library}.TCTXP WHERE XPEJER = ? AND XPPERI = ? AND XPTDOC = '99' AND XPNDOC = ?";
             string deleteTctxp = $@"DELETE FROM {library}.TCTXP WHERE XPEJER = ? AND XPPERI = ? AND XPTDOC = ? AND XPNDOC = ?";
             string deleteTregc = $@"DELETE FROM {library}.TREGC WHERE RCEJER = ? AND RCPERI = ? AND RCTDOC = ? AND RCNDOC = ? AND RCRCXP = ?";
+
+            using (OdbcCommand cmd99 = new OdbcCommand(deleteTctxp99, cn))
+            {
+                cmd99.CommandType = CommandType.Text;
+                cmd99.Parameters.AddWithValue("@XPEJER", ejercicio);
+                cmd99.Parameters.AddWithValue("@XPPERI", mes);
+                cmd99.Parameters.AddWithValue("@XPNDOC", Trunc(nrodoc, 15));
+                await cmd99.ExecuteNonQueryAsync();
+            }
 
             using (OdbcCommand cmd1 = new OdbcCommand(deleteTctxp, cn))
             {
