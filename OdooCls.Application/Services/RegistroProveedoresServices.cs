@@ -39,9 +39,13 @@ namespace OdooCls.Application.Services
                     
                     if (existingProcve != null || existingClicve != null)
                     {
-                        var detail = new { ruc = dto.PRORUC };
-                        if (existingProcve != null) detail = new { ruc = dto.PRORUC, codigo_proveedor = existingProcve };
-                        if (existingClicve != null) detail = new { ruc = dto.PRORUC, codigo_proveedor = existingProcve, codigo_cliente = existingClicve };
+                        object detail;
+                        if (existingProcve != null && existingClicve != null)
+                            detail = new { ruc = dto.PRORUC, codigo_proveedor = existingProcve, codigo_cliente = existingClicve };
+                        else if (existingProcve != null)
+                            detail = new { ruc = dto.PRORUC, codigo_proveedor = existingProcve };
+                        else
+                            detail = new { ruc = dto.PRORUC, codigo_cliente = existingClicve };
                         
                         return new ApiResponse<RegistroProveedoresDto>(400, 4003, $"El RUC {dto.PRORUC} ya está registrado")
                         {
