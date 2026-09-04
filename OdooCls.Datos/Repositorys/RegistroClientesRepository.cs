@@ -154,6 +154,30 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
+        public async Task<string?> GetCliCveByRuc(string ruc)
+        {
+            string q = $@"select CLICVE from {library}.tclie where CLIRUC=?";
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                using var cmd = new OdbcCommand(q, cn);
+                cmd.CommandTimeout = 5;
+                await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return null;
+                
+                cmd.Parameters.AddWithValue("@CLIRUC", ruc);
+                var result = await cmd.ExecuteScalarAsync();
+                return result?.ToString();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Repository.GetCliCveByRuc] ERROR: {ex.Message}");
+                return null;
+            }
+        }
+
         public async Task<List<RegistroCliente>> GetAllClientes(int page, int pageSize)
         {
             int offset = (page - 1) * pageSize;

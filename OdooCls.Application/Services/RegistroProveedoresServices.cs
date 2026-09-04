@@ -26,11 +26,21 @@ namespace OdooCls.Application.Services
 
                 // Validar código único
                 if (await repo.ExisteProveedor(dto.PROCVE))
-                    return new ApiResponse<RegistroProveedoresDto>(400, 4001, $"Proveedor {dto.PROCVE} ya existe");
+                    return new ApiResponse<RegistroProveedoresDto>(400, 4001, $"Proveedor {dto.PROCVE} ya existe")
+                    {
+                        Detail = new { codigo = dto.PROCVE }
+                    };
 
                 // Validar RUC único
-                if (!string.IsNullOrWhiteSpace(dto.PRORUC) && await repo.ExisteRuc(dto.PRORUC))
-                    return new ApiResponse<RegistroProveedoresDto>(400, 4003, $"El RUC {dto.PRORUC} ya está registrado");
+                if (!string.IsNullOrWhiteSpace(dto.PRORUC))
+                {
+                    var existingProcve = await repo.GetProcveByRuc(dto.PRORUC);
+                    if (existingProcve != null)
+                        return new ApiResponse<RegistroProveedoresDto>(400, 4003, $"El RUC {dto.PRORUC} ya está registrado en el proveedor {existingProcve}")
+                        {
+                            Detail = new { ruc = dto.PRORUC, codigo_existente = existingProcve }
+                        };
+                }
 
                 // Validar situación 01/02/99
                 var sit = (dto.PROSIT ?? string.Empty).Trim();
