@@ -23,5 +23,3 @@ namespace OdooCls.Core.Entities
         }
     }
 }
-    }
-}
