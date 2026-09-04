@@ -178,6 +178,30 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
+        public async Task<string?> GetProcveByRuc(string ruc)
+        {
+            string q = $@"select PROCVE from {library}.tprov where PRORUC=?";
+            try
+            {
+                using var cn = new OdbcConnection(connectionString);
+                using var cmd = new OdbcCommand(q, cn);
+                cmd.CommandTimeout = 5;
+                await cn.OpenAsync();
+                
+                if (!CallLibreria(cn))
+                    return null;
+                
+                cmd.Parameters.AddWithValue("@PRORUC", ruc);
+                var result = await cmd.ExecuteScalarAsync();
+                return result?.ToString();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Repository.GetProcveByRuc] ERROR: {ex.Message}");
+                return null;
+            }
+        }
+
         public async Task<List<RegistroCliente>> GetAllClientes(int page, int pageSize)
         {
             int offset = (page - 1) * pageSize;

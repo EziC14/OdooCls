@@ -30,15 +30,23 @@ namespace OdooCls.Application.Services
                         Detail = new { codigo = dto.CLICVE }
                     };
 
-                // Validar RUC único
+                // Validar RUC único en clientes y proveedores
                 if (!string.IsNullOrWhiteSpace(dto.CLIRUC))
                 {
                     var existingClicve = await repo.GetCliCveByRuc(dto.CLIRUC);
-                    if (existingClicve != null)
-                        return new ApiResponse<RegistroClientesDto>(400, 3003, $"El RUC {dto.CLIRUC} ya está registrado en el cliente {existingClicve}")
+                    var existingProcve = await repo.GetProcveByRuc(dto.CLIRUC);
+                    
+                    if (existingClicve != null || existingProcve != null)
+                    {
+                        var detail = new { ruc = dto.CLIRUC };
+                        if (existingClicve != null) detail = new { ruc = dto.CLIRUC, codigo_cliente = existingClicve };
+                        if (existingProcve != null) detail = new { ruc = dto.CLIRUC, codigo_cliente = existingClicve, codigo_proveedor = existingProcve };
+                        
+                        return new ApiResponse<RegistroClientesDto>(400, 3003, $"El RUC {dto.CLIRUC} ya está registrado")
                         {
-                            Detail = new { ruc = dto.CLIRUC, codigo_existente = existingClicve }
+                            Detail = detail
                         };
+                    }
                 }
 
                 var sit = (dto.CLISIT ?? string.Empty).Trim();

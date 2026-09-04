@@ -9,6 +9,7 @@ namespace OdooCls.Core.Interfaces
         Task<bool> ExisteProveedor(string procve);
         Task<bool> ExisteRuc(string ruc);
         Task<string?> GetProcveByRuc(string ruc);
+        Task<string?> GetCliCveByRuc(string ruc);
         Task<List<RegistroProveedor>> GetAllProveedores(int page, int pageSize);
         Task<int> GetTotalProveedoresCount();
         Task<RegistroProveedor?> GetProveedorById(string procve);
