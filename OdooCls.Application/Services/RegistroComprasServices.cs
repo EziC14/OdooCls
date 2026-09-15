@@ -75,36 +75,13 @@ namespace OdooCls.Application.Services
                     return new ApiResponse<RegistroComprasDto>(400, 1008, $"El documento {rcdto.RCTDOC}-{rcdto.RCNDOC} ya existe en RC/CXP");
                 }
 
-                var peri = DateTime.Now.ToString("yyyyMM");
-                var anio = DateTime.Now.Year;
-                var meses = DateTime.Now.Month;
-                int correla;
-                try
+                var existeCorrelativo = await Registro.ExisteCorrelativoRegxp(ejercicio, mes);
+                if (!existeCorrelativo)
                 {
-                    correla = Registro.GetNextCorr(peri);
+                    var periodo = $"{ejercicio}{mes:D2}";
+                    return new ApiResponse<RegistroComprasDto>(400, 1009,
+                        $"No existe el registro de correlativo REGXP para el período {periodo}");
                 }
-                catch (Exception exCorr)
-                {
-                    return new ApiResponse<RegistroComprasDto>(500, 500, $"Fallo en GetNextCorr (periodo={peri}): {exCorr.Message}");
-                }
-                string rcxp = "";
-                switch (meses)
-                {
-                    case 10:
-                        rcxp = anio.ToString() + "A" + correla.ToString("D5");
-                        break;
-                    case 11:
-                        rcxp = anio.ToString() + "B" + correla.ToString("D5");
-                        break;
-                    case 12:
-                        rcxp = anio.ToString() + "C" + correla.ToString("D5");
-                        break;
-                    default:
-                        rcxp = anio.ToString() + meses.ToString() + correla.ToString("D5");
-                        break;
-                }
-
-                rcdto.RCRCXP = rcxp;
 
                 // Valores fijos requeridos por el sistema
                 //rcdto.RCCVAL = "6011003";

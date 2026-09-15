@@ -80,93 +80,46 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
-        public int GetNextCorr(string periodo)
+        public async Task<bool> ExisteCorrelativoRegxp(int ejercicio, int mes)
         {
-            try
-            {
-                using (var connection = new OdbcConnection(connectionString))
-                {
-                    connection.Open();
+            string periodo = BuildPeriodo(ejercicio, mes);
+            string query = $@"SELECT COUNT(*) FROM {library}.TTABD WHERE TBIDEN = ? AND TBESPE = ?";
 
-                    if (!CallLibreria(connection))
-                        return 0;
+            using var connection = new OdbcConnection(connectionString);
+            await connection.OpenAsync();
 
-                    var activeLibrary = library?.Trim();
-                    if (string.IsNullOrWhiteSpace(activeLibrary))
-                        throw new InvalidOperationException("Authentication:Library no está configurada.");
+            if (!CallLibreria(connection))
+                return false;
 
-                    try
-                    {
-                        return ExecuteGetNextCorr(connection, activeLibrary, periodo);
-                    }
-                    catch (OdbcException ex) when (ex.Message.Contains("SQL0204"))
-                    {
-                        return GetNextCorrFromTables(connection, activeLibrary, periodo);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error GetNextCorr: {ex.Message}");
-                throw new Exception($"[GetNextCorr] {ex.Message}", ex);
-            }
+            using var command = new OdbcCommand(query, connection);
+            command.Parameters.AddWithValue("@TBIDEN", "REGXP");
+            command.Parameters.AddWithValue("@TBESPE", periodo);
+            return Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
         }
 
-        private static int ExecuteGetNextCorr(OdbcConnection connection, string schema, string periodo)
+        private static string BuildPeriodo(int ejercicio, int mes)
         {
-            using var cmd = new OdbcCommand($"{{ CALL {schema}.SP_GET_NEXT_TTABD(?, ?) }}", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
+            if (ejercicio < 1 || mes < 1 || mes > 12)
+                throw new ArgumentOutOfRangeException(nameof(mes), "El período debe contener un mes entre 1 y 12.");
 
-            var pIn = new OdbcParameter("@v_period", OdbcType.Char, 6)
-            {
-                Direction = ParameterDirection.Input,
-                Value = periodo
-            };
-            cmd.Parameters.Add(pIn);
-
-            var pOut = new OdbcParameter("@next_corr", OdbcType.Char, 15)
-            {
-                Direction = ParameterDirection.Output
-            };
-            cmd.Parameters.Add(pOut);
-
-            cmd.ExecuteNonQuery();
-
-            var rawValue = pOut.Value?.ToString()?.Trim() ?? "0";
-            return int.TryParse(rawValue, out int result) ? result : 0;
+            return $"{ejercicio}{mes:D2}";
         }
 
-        private static int GetNextCorrFromTables(OdbcConnection connection, string schema, string periodo)
+        private static string BuildRcxp(int ejercicio, int mes, int correlativo)
         {
-            if (string.IsNullOrWhiteSpace(periodo) || periodo.Length != 6)
-                throw new InvalidOperationException("Periodo inválido para correlativo local. Formato esperado: yyyyMM.");
+            if (correlativo < 1 || correlativo > 99999)
+                throw new InvalidOperationException("El correlativo REGXP debe estar entre 1 y 99999.");
 
-            int year = int.Parse(periodo.Substring(0, 4));
-            int month = int.Parse(periodo.Substring(4, 2));
+            string mesCodigo = mes switch
+            {
+                10 => "A",
+                11 => "B",
+                12 => "C",
+                >= 1 and <= 9 => mes.ToString(),
+                _ => throw new ArgumentOutOfRangeException(nameof(mes), "El mes debe estar entre 1 y 12.")
+            };
 
-            string sql = $@"
-                SELECT COALESCE(MAX(CORR), 0) + 1
-                FROM (
-                    SELECT INT(RIGHT(TRIM(RCRCXP), 5)) AS CORR
-                    FROM {schema}.TREGC
-                    WHERE RCEJER = ? AND RCPERI = ?
-                    UNION ALL
-                    SELECT INT(RIGHT(TRIM(XPRCXP), 5)) AS CORR
-                    FROM {schema}.TCTXP
-                    WHERE XPEJER = ? AND XPPERI = ?
-                ) X";
-
-            using var cmd = new OdbcCommand(sql, connection);
-            cmd.Parameters.AddWithValue("@RCEJER", year);
-            cmd.Parameters.AddWithValue("@RCPERI", month);
-            cmd.Parameters.AddWithValue("@XPEJER", year);
-            cmd.Parameters.AddWithValue("@XPPERI", month);
-
-            var value = cmd.ExecuteScalar();
-            int corr = Convert.ToInt32(value ?? 1);
-            return corr <= 0 ? 1 : corr;
+            return $"{ejercicio}{mesCodigo}{correlativo:D5}";
         }
 
         public async Task<bool> InsertTregc(RegistroCompras registro)
@@ -268,7 +221,7 @@ namespace OdooCls.Infrastucture.Repositorys
             RCCVAI,RCMVAI,RCDSCT,RCCDSC,RCMDSC,RCIMP1,RCCIM1,RCMIM1,RCPVTA,RCCPVT,RCMPVT,RCRET1,RCCRE1,RCMRE1,RCCONC,RCASTO,RCCOST,RCTREF,RCNREF,
             RCFEVE,RCNDOM,RCCPAG,RCSITU,RCFREF,RCUSIN,RCFEIN,RCHOIN,RCRVVA,RCREF7,RCCBSA
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-            string rcxpTregc = registro.RCRCXP;
+            OdbcTransaction? transaction = null;
             try
             {
                 ValidateInsertPlaceholders(queryTregc, 46);
@@ -278,18 +231,15 @@ namespace OdooCls.Infrastucture.Repositorys
                 if (!CallLibreria(cn))
                     return false;
 
-                // Para detracción: override RCRCXP c/r a TCTXP.XPRCXP, no al correlativo del service
-                if (EsTipoDetraccion(registro.RCTDOC) && registro.RCRET1 > 0)
-                {
-                    var xprcxpBase = await ObtenerSiguienteXprcxp(cn, registro.RCEJER, registro.RCPERI);
-                    Console.WriteLine($"[LOG] Detraccion: XPRCXP base={xprcxpBase} (service mando {registro.RCRCXP})");
-                    registro.RCRCXP = xprcxpBase;
-                }
-                rcxpTregc = registro.RCRCXP;
+                transaction = cn.BeginTransaction();
+                int ultimoCorrelativo = await ObtenerUltimoCorrelativoRegxp(cn, transaction, registro.RCEJER, registro.RCPERI);
+                int correlativoBase = checked(ultimoCorrelativo + 1);
+                registro.RCRCXP = BuildRcxp(registro.RCEJER, registro.RCPERI, correlativoBase);
 
                 using (var cmdTregc = new OdbcCommand(queryTregc, cn))
                 {
                     cmdTregc.CommandType = CommandType.Text;
+                    cmdTregc.Transaction = transaction;
                     cmdTregc.Parameters.AddWithValue("@RCEJER", registro.RCEJER);
                     cmdTregc.Parameters.AddWithValue("@RCPERI", registro.RCPERI);
                     cmdTregc.Parameters.AddWithValue("@RCTDOC", Trunc(registro.RCTDOC, 2));
@@ -339,40 +289,68 @@ namespace OdooCls.Infrastucture.Repositorys
 
                     var rowsTregc = await cmdTregc.ExecuteNonQueryAsync();
                     if (rowsTregc <= 0)
-                        return false;
+                        throw new InvalidOperationException("No se insertó el registro en TREGC.");
                 }
 
-                await InsertCtxpInConnection(cn, registro);
+                int ultimoCorrelativoUsado = await InsertCtxpInConnection(cn, transaction, registro, correlativoBase);
+                await ActualizarCorrelativoRegxp(cn, transaction, registro.RCEJER, registro.RCPERI,
+                    ultimoCorrelativo, ultimoCorrelativoUsado);
+                transaction.Commit();
                 return true;
             }
             catch (OdbcException ex)
             {
                 string diag = BuildOdbcDiagnostics(ex);
-
-                try
-                {
-                    using OdbcConnection cnCleanup = new OdbcConnection(connectionString);
-                    await cnCleanup.OpenAsync();
-                    if (CallLibreria(cnCleanup))
-                        await CleanupPartialPurchasesInserts(cnCleanup, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, rcxpTregc);
-                }
-                catch { }
+                try { transaction?.Rollback(); } catch { }
 
                 throw new Exception($"[InsertTregcAndCtxp] ODBC {diag}", ex);
             }
             catch (Exception ex)
             {
-                try
-                {
-                    using OdbcConnection cnCleanup = new OdbcConnection(connectionString);
-                    await cnCleanup.OpenAsync();
-                    if (CallLibreria(cnCleanup))
-                        await CleanupPartialPurchasesInserts(cnCleanup, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, rcxpTregc);
-                }
-                catch { }
+                try { transaction?.Rollback(); } catch { }
 
                 throw new Exception($"[InsertTregcAndCtxp] {ex.Message}", ex);
             }
+            finally
+            {
+                transaction?.Dispose();
+            }
+        }
+
+        private async Task<int> ObtenerUltimoCorrelativoRegxp(
+            OdbcConnection connection, OdbcTransaction transaction, int ejercicio, int mes)
+        {
+            string periodo = BuildPeriodo(ejercicio, mes);
+            string query = $@"SELECT TBNUM1 FROM {library}.TTABD WHERE TBIDEN = ? AND TBESPE = ? FOR UPDATE";
+
+            using var command = new OdbcCommand(query, connection, transaction);
+            command.Parameters.AddWithValue("@TBIDEN", "REGXP");
+            command.Parameters.AddWithValue("@TBESPE", periodo);
+
+            var value = await command.ExecuteScalarAsync();
+            if (value == null || value == DBNull.Value)
+                throw new InvalidOperationException($"No existe el registro de correlativo REGXP para el período {periodo}");
+
+            return Convert.ToInt32(value);
+        }
+
+        private async Task ActualizarCorrelativoRegxp(
+            OdbcConnection connection, OdbcTransaction transaction, int ejercicio, int mes,
+            int ultimoCorrelativo, int correlativoUsado)
+        {
+            string periodo = BuildPeriodo(ejercicio, mes);
+            string query = $@"UPDATE {library}.TTABD SET TBNUM1 = ?
+                              WHERE TBIDEN = ? AND TBESPE = ? AND TBNUM1 = ?";
+
+            using var command = new OdbcCommand(query, connection, transaction);
+            command.Parameters.AddWithValue("@TBNUM1Nuevo", correlativoUsado);
+            command.Parameters.AddWithValue("@TBIDEN", "REGXP");
+            command.Parameters.AddWithValue("@TBESPE", periodo);
+            command.Parameters.AddWithValue("@TBNUM1Anterior", ultimoCorrelativo);
+
+            int rows = await command.ExecuteNonQueryAsync();
+            if (rows != 1)
+                throw new InvalidOperationException($"No se pudo actualizar el correlativo REGXP para el período {periodo}");
         }
 
         private static readonly HashSet<string> TiposDetraccion = new(StringComparer.OrdinalIgnoreCase)
@@ -385,75 +363,53 @@ namespace OdooCls.Infrastucture.Repositorys
             return !string.IsNullOrWhiteSpace(tipoDoc) && TiposDetraccion.Contains(tipoDoc.Trim());
         }
 
-        private async Task InsertCtxpInConnection(OdbcConnection cn, RegistroCompras registro)
+        private async Task<int> InsertCtxpInConnection(
+            OdbcConnection cn, OdbcTransaction transaction, RegistroCompras registro, int correlativoBase)
         {
             Console.WriteLine($"[LOG InsertCtxpInConnection] RCTDOC={registro.RCTDOC}, RCNDOC={registro.RCNDOC}, RCPVTA={registro.RCPVTA}, RCRET1={registro.RCRET1}");
             if (EsNotaCredito(registro.RCTDOC))
             {
                 Console.WriteLine($"[LOG] => NC, monto={-registro.RCPVTA}");
-                await InsertCtxpRow(cn, registro, registro.RCTDOC, -registro.RCPVTA);
+                await InsertCtxpRow(cn, transaction, registro, registro.RCTDOC, -registro.RCPVTA);
+                return correlativoBase;
             }
             else if (EsTipoDetraccion(registro.RCTDOC) && registro.RCRET1 > 0)
             {
                 Console.WriteLine($"[LOG] => DETRACCION, fila1: tipo={registro.RCTDOC} monto={registro.RCPVTA}, fila2: tipo=99 monto={registro.RCRET1}");
-                await InsertCtxpRow(cn, registro, registro.RCTDOC, registro.RCPVTA);
+                await InsertCtxpRow(cn, transaction, registro, registro.RCTDOC, registro.RCPVTA);
 
                 var rcxp99 = ObtenerRcxpSiguiente(registro.RCRCXP);
                 Console.WriteLine($"[LOG] XPRCXP fila99: {rcxp99} (D6: {registro.RCRCXP})");
                 registro.RCRCXP = rcxp99;
-                await InsertCtxpRow(cn, registro, "99", registro.RCRET1);
+                await InsertCtxpRow(cn, transaction, registro, "99", registro.RCRET1);
+                return checked(correlativoBase + 1);
             }
             else
             {
                 Console.WriteLine($"[LOG] => NORMAL, monto={registro.RCPVTA}");
-                await InsertCtxpRow(cn, registro, registro.RCTDOC, registro.RCPVTA);
+                await InsertCtxpRow(cn, transaction, registro, registro.RCTDOC, registro.RCPVTA);
+                return correlativoBase;
             }
         }
 
         private static string ObtenerRcxpSiguiente(string? rcxp)
         {
             if (string.IsNullOrWhiteSpace(rcxp) || rcxp.Length < 6)
-                return (rcxp ?? "") + "01";
+                throw new InvalidOperationException("El código de cuenta por pagar no tiene un correlativo válido.");
 
             string prefix = rcxp.Substring(0, rcxp.Length - 5);
             string corrStr = rcxp.Substring(rcxp.Length - 5);
 
             if (int.TryParse(corrStr, out int corr))
             {
+                if (corr >= 99999)
+                    throw new InvalidOperationException("El correlativo REGXP alcanzó su valor máximo.");
+
                 corr++;
-                if (corr > 99999) corr = 1;
                 return prefix + corr.ToString("D5");
             }
 
-            return rcxp + "01";
-        }
-
-        private async Task<string> ObtenerSiguienteXprcxp(OdbcConnection cn, int ejercicio, int mes)
-        {
-            string monthChar = mes >= 10 ? ((char)(64 + mes)).ToString() : mes.ToString();
-            string prefix = ejercicio.ToString() + monthChar;
-
-            string query = $@"SELECT COALESCE(MAX(XPRCXP), '') FROM {library}.TCTXP
-                              WHERE XPEJER = ? AND XPPERI = ? AND XPRCXP LIKE ?";
-
-            using OdbcCommand cmd = new OdbcCommand(query, cn);
-            cmd.Parameters.AddWithValue("@XPEJER", ejercicio);
-            cmd.Parameters.AddWithValue("@XPPERI", mes);
-            cmd.Parameters.AddWithValue("@LIKE", prefix + "%");
-
-            var result = await cmd.ExecuteScalarAsync();
-            string maxXprcxp = result?.ToString()?.Trim() ?? "";
-
-            if (string.IsNullOrWhiteSpace(maxXprcxp) || maxXprcxp.Length < 6)
-                return prefix + "00001";
-
-            string corrStr = maxXprcxp.Substring(maxXprcxp.Length - 5);
-            if (!int.TryParse(corrStr, out int corr))
-                return prefix + "00001";
-
-            corr++;
-            if (corr > 99999) corr = 1;
-            return prefix + corr.ToString("D5");
+            throw new InvalidOperationException("El código de cuenta por pagar no tiene un correlativo numérico válido.");
         }
 
         private static bool EsNotaCredito(string? tipoDoc)
@@ -463,7 +419,8 @@ namespace OdooCls.Infrastucture.Repositorys
                  tipoDoc.Trim().Equals("NE", StringComparison.OrdinalIgnoreCase));
         }
 
-        private async Task InsertCtxpRow(OdbcConnection cn, RegistroCompras r, string tipoDoc, decimal monto)
+        private async Task InsertCtxpRow(
+            OdbcConnection cn, OdbcTransaction transaction, RegistroCompras r, string tipoDoc, decimal monto)
         {
             string query = $@"INSERT INTO {library}.tctxp (
                 XPEJER, XPPERI, XPTDOC, XPNDOC, XPFECH, XPFEVE, XPRCXP, XPCPRO, XPCPAG,
@@ -485,6 +442,7 @@ namespace OdooCls.Infrastucture.Repositorys
             Console.WriteLine($"[LOG InsertCtxpRow] tctxp: tipo={tipoDoc} ndoc={r.RCNDOC} monto={monto} rcxp={Trunc(r.RCRCXP, 10)}");
 
             using OdbcCommand cmd = new OdbcCommand(query, cn);
+            cmd.Transaction = transaction;
             cmd.Parameters.AddWithValue("@XPEJER", r.RCEJER);
             cmd.Parameters.AddWithValue("@XPPERI", r.RCPERI);
             cmd.Parameters.AddWithValue("@XPTDOC", Trunc(tipoDoc, 2));
