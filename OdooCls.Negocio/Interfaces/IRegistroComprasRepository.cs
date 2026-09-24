@@ -1,4 +1,4 @@
-﻿using OdooCls.Core.Entities;
+using OdooCls.Core.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +15,7 @@ namespace OdooCls.Core.Interfaces
         public Task<bool> InsertTregcAndCtxp(RegistroCompras registro);
         public Task<bool> ValidatTipoDoc(string tipo);
         public Task<bool> ValidaMoneda(int moneda);
-        public Task<bool> ValidarExistenciaDocumento(int ejercicio, int mes, string Tipodoc, string nrodoc);
+        public Task<bool> ValidarExistenciaDocumento(int ejercicio, int mes, string Tipodoc, string nrodoc, string codprov);
         public Task<bool> ValidarStatusRC(int ejercicio, int mes, string stconta);
         public Task<bool> ValidaProveedor(string codprov);
         public Task<bool> ExisteCorrelativoRegxp(int ejercicio, int mes);

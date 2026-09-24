@@ -1,4 +1,4 @@
-ï»¿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Win32;
 using OdooCls.Core.Entities;
 using OdooCls.Core.Interfaces;
@@ -31,7 +31,7 @@ namespace OdooCls.Infrastucture.Repositorys
         private static string ObtenerCompanyCode(string? libraryName)
         {
             if (string.IsNullOrWhiteSpace(libraryName) || libraryName.Length < 2)
-                throw new InvalidOperationException("Authentication:Library no tiene un formato vÃ¡lido.");
+                throw new InvalidOperationException("Authentication:Library no tiene un formato válido.");
 
             var trimmed = libraryName.Trim();
             return trimmed.Substring(trimmed.Length - 2).ToUpperInvariant();
@@ -61,7 +61,7 @@ namespace OdooCls.Infrastucture.Repositorys
         {
             int qCount = sql.Count(c => c == '?');
             if (qCount != expectedCount)
-                throw new InvalidOperationException($"Cantidad invÃ¡lida de placeholders en INSERT TREGC. Esperado={expectedCount}, Actual={qCount}");
+                throw new InvalidOperationException($"Cantidad inválida de placeholders en INSERT TREGC. Esperado={expectedCount}, Actual={qCount}");
         }
 
         private bool CallLibreria(OdbcConnection cn)
@@ -100,7 +100,7 @@ namespace OdooCls.Infrastucture.Repositorys
         private static string BuildPeriodo(int ejercicio, int mes)
         {
             if (ejercicio < 1 || mes < 1 || mes > 12)
-                throw new ArgumentOutOfRangeException(nameof(mes), "El perÃ­odo debe contener un mes entre 1 y 12.");
+                throw new ArgumentOutOfRangeException(nameof(mes), "El período debe contener un mes entre 1 y 12.");
 
             return $"{ejercicio}{mes:D2}";
         }
@@ -289,7 +289,7 @@ namespace OdooCls.Infrastucture.Repositorys
 
                     var rowsTregc = await cmdTregc.ExecuteNonQueryAsync();
                     if (rowsTregc <= 0)
-                        throw new InvalidOperationException("No se insertÃ³ el registro en TREGC.");
+                        throw new InvalidOperationException("No se insertó el registro en TREGC.");
                 }
 
                 int ultimoCorrelativoUsado = await InsertCtxpInConnection(cn, transaction, registro, correlativoBase);
@@ -329,7 +329,7 @@ namespace OdooCls.Infrastucture.Repositorys
 
             var value = await command.ExecuteScalarAsync();
             if (value == null || value == DBNull.Value)
-                throw new InvalidOperationException($"No existe el registro de correlativo REGXP para el perÃ­odo {periodo}");
+                throw new InvalidOperationException($"No existe el registro de correlativo REGXP para el período {periodo}");
 
             return Convert.ToInt32(value);
         }
@@ -350,7 +350,7 @@ namespace OdooCls.Infrastucture.Repositorys
 
             int rows = await command.ExecuteNonQueryAsync();
             if (rows != 1)
-                throw new InvalidOperationException($"No se pudo actualizar el correlativo REGXP para el perÃ­odo {periodo}");
+                throw new InvalidOperationException($"No se pudo actualizar el correlativo REGXP para el período {periodo}");
         }
 
         private static readonly HashSet<string> TiposDetraccion = new(StringComparer.OrdinalIgnoreCase)
@@ -395,7 +395,7 @@ namespace OdooCls.Infrastucture.Repositorys
         private static string ObtenerRcxpSiguiente(string? rcxp)
         {
             if (string.IsNullOrWhiteSpace(rcxp) || rcxp.Length < 6)
-                throw new InvalidOperationException("El cÃ³digo de cuenta por pagar no tiene un correlativo vÃ¡lido.");
+                throw new InvalidOperationException("El código de cuenta por pagar no tiene un correlativo válido.");
 
             string prefix = rcxp.Substring(0, rcxp.Length - 5);
             string corrStr = rcxp.Substring(rcxp.Length - 5);
@@ -403,13 +403,13 @@ namespace OdooCls.Infrastucture.Repositorys
             if (int.TryParse(corrStr, out int corr))
             {
                 if (corr >= 99999)
-                    throw new InvalidOperationException("El correlativo REGXP alcanzÃ³ su valor mÃ¡ximo.");
+                    throw new InvalidOperationException("El correlativo REGXP alcanzó su valor máximo.");
 
                 corr++;
                 return prefix + corr.ToString("D5");
             }
 
-            throw new InvalidOperationException("El cÃ³digo de cuenta por pagar no tiene un correlativo numÃ©rico vÃ¡lido.");
+            throw new InvalidOperationException("El código de cuenta por pagar no tiene un correlativo numérico válido.");
         }
 
         private static bool EsNotaCredito(string? tipoDoc)
@@ -525,7 +525,7 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
-        // Mantiene firma anterior para InsertCtxp (sin detracciÃ³n)
+        // Mantiene firma anterior para InsertCtxp (sin detracción)
         private async Task InsertCtxpInConnection(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc)
         {
             string queryCtxp = $@"INSERT INTO {library}.tctxp (
@@ -670,7 +670,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
-                    // Verificar si se encontrÃ³ algÃºn dato
+                    // Verificar si se encontró algún dato
                     if (await reader.ReadAsync())
                     {
                         // Obtener el valor de la primera columna (el resultado de COUNT(1))
@@ -697,7 +697,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
-                    // Verificar si se encontrÃ³ algÃºn dato
+                    // Verificar si se encontró algún dato
                     if (await reader.ReadAsync())
                     {
                         // Obtener el valor de la primera columna (el resultado de COUNT(1))
@@ -709,10 +709,10 @@ namespace OdooCls.Infrastucture.Repositorys
             return rp;
         }
 
-        public async Task<bool> ValidarExistenciaDocumento(int ejercicio, int mes, string Tipodoc, string nrodoc)
+        public async Task<bool> ValidarExistenciaDocumento(int ejercicio, int mes, string Tipodoc, string nrodoc, string codprov)
         {
-            const string qTregc = @"SELECT COUNT(*) FROM {0}.TREGC WHERE RCEJER=? AND RCPERI=? AND RCTDOC=? AND RCNDOC=?";
-            const string qTctxp = @"SELECT COUNT(*) FROM {0}.TCTXP WHERE XPEJER=? AND XPPERI=? AND XPTDOC=? AND XPNDOC=?";
+            const string qTregc = @"SELECT COUNT(*) FROM {0}.TREGC WHERE RCEJER=? AND RCPERI=? AND RCTDOC=? AND RCNDOC=? AND RCCPRO=?";
+            const string qTctxp = @"SELECT COUNT(*) FROM {0}.TCTXP WHERE XPEJER=? AND XPPERI=? AND XPTDOC=? AND XPNDOC=? AND XPCPRO=?";
 
             using (var connection = new OdbcConnection(connectionString))
             {
@@ -730,6 +730,7 @@ namespace OdooCls.Infrastucture.Repositorys
                     cmdTregc.Parameters.AddWithValue("@RCPERI", mes);
                     cmdTregc.Parameters.AddWithValue("@RCTDOC", Trunc(Tipodoc, 2));
                     cmdTregc.Parameters.AddWithValue("@RCNDOC", Trunc(nrodoc, 15));
+                    cmdTregc.Parameters.AddWithValue("@RCCPRO", Trunc(codprov, 10));
                     countTregc = Convert.ToInt32(await cmdTregc.ExecuteScalarAsync() ?? 0);
                 }
 
@@ -739,6 +740,7 @@ namespace OdooCls.Infrastucture.Repositorys
                     cmdTctxp.Parameters.AddWithValue("@XPPERI", mes);
                     cmdTctxp.Parameters.AddWithValue("@XPTDOC", Trunc(Tipodoc, 2));
                     cmdTctxp.Parameters.AddWithValue("@XPNDOC", Trunc(nrodoc, 15));
+                    cmdTctxp.Parameters.AddWithValue("@XPCPRO", Trunc(codprov, 10));
                     countTctxp = Convert.ToInt32(await cmdTctxp.ExecuteScalarAsync() ?? 0);
                 }
 
@@ -762,7 +764,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 
                 using (OdbcDataReader reader = (OdbcDataReader)await command.ExecuteReaderAsync())
                 {
-                    // Verificar si se encontrÃ³ algÃºn dato
+                    // Verificar si se encontró algún dato
                     if (await reader.ReadAsync())
                     {
                         vc = reader.GetString(0); // Obtener el valor de la primera columna

@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.Extensions.Configuration;
 using OdooCls.Core.Entities;
 using OdooCls.Core.Interfaces;

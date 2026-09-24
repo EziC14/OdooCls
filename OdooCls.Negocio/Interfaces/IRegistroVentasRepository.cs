@@ -1,4 +1,4 @@
-﻿using OdooCls.Core.Entities;
+using OdooCls.Core.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +21,7 @@ namespace OdooCls.Core.Interfaces
         /// <param name="mes">Mes</param>
         /// <param name="Tipodoc">Tipo Documento</param>
         /// <param name="nrodoc">Nro Documento</param>
+        /// <param name="codclie">Codigo del cliente</param>
         /// <returns></returns>
         public Task<bool> ValidarExistenciaDocumento(int ejercicio, int mes, string Tipodoc, string nrodoc);
         /// <summary>

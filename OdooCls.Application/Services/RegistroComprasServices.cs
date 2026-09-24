@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.VisualBasic;
 using OdooCls.Application.Dtos;
 using OdooCls.Application.Mapper;
@@ -69,7 +69,7 @@ namespace OdooCls.Application.Services
                     return new ApiResponse<RegistroComprasDto>(400, 1007, $"Proveedor no existe");
                 }
 
-                var documentoExiste = await Registro.ValidarExistenciaDocumento(ejercicio, mes, rcdto.RCTDOC, rcdto.RCNDOC);
+                var documentoExiste = await Registro.ValidarExistenciaDocumento(ejercicio, mes, rcdto.RCTDOC, rcdto.RCNDOC, rcdto.RCCPRO);
                 if (documentoExiste)
                 {
                     return new ApiResponse<RegistroComprasDto>(400, 1008, $"El documento {rcdto.RCTDOC}-{rcdto.RCNDOC} ya existe en RC/CXP");
