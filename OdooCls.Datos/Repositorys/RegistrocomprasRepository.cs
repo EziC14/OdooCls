@@ -302,12 +302,14 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 string diag = BuildOdbcDiagnostics(ex);
                 try { transaction?.Rollback(); } catch { }
+                try { await CleanupPartialPurchasesInserts(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP ?? ""); } catch { }
 
                 throw new Exception($"[InsertTregcAndCtxp] ODBC {diag}", ex);
             }
             catch (Exception ex)
             {
                 try { transaction?.Rollback(); } catch { }
+                try { await CleanupPartialPurchasesInserts(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP ?? ""); } catch { }
 
                 throw new Exception($"[InsertTregcAndCtxp] {ex.Message}", ex);
             }
@@ -826,3 +828,4 @@ namespace OdooCls.Infrastucture.Repositorys
         }
     }
 }
+
