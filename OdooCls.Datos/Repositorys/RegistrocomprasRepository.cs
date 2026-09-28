@@ -222,10 +222,11 @@ namespace OdooCls.Infrastucture.Repositorys
             RCFEVE,RCNDOM,RCCPAG,RCSITU,RCFREF,RCUSIN,RCFEIN,RCHOIN,RCRVVA,RCREF7,RCCBSA
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             OdbcTransaction? transaction = null;
+            OdbcConnection? cn = null;
             try
             {
                 ValidateInsertPlaceholders(queryTregc, 46);
-                using OdbcConnection cn = new OdbcConnection(connectionString);
+                cn = new OdbcConnection(connectionString);
                 await cn.OpenAsync();
 
                 if (!CallLibreria(cn))
@@ -302,20 +303,21 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 string diag = BuildOdbcDiagnostics(ex);
                 try { transaction?.Rollback(); } catch { }
-                try { await CleanupPartialPurchasesInserts(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP ?? ""); } catch { }
+                if (cn != null) try { await CleanupPartialPurchasesInserts(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP ?? ""); } catch { }
 
                 throw new Exception($"[InsertTregcAndCtxp] ODBC {diag}", ex);
             }
             catch (Exception ex)
             {
                 try { transaction?.Rollback(); } catch { }
-                try { await CleanupPartialPurchasesInserts(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP ?? ""); } catch { }
+                if (cn != null) try { await CleanupPartialPurchasesInserts(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP ?? ""); } catch { }
 
                 throw new Exception($"[InsertTregcAndCtxp] {ex.Message}", ex);
             }
             finally
             {
                 transaction?.Dispose();
+                cn?.Dispose();
             }
         }
 
