@@ -34,10 +34,28 @@ namespace OdooCls.Application.Dtos
         [StringLength(15)]
         public string PRORUC { get; set; } = string.Empty; // R.U.C. Proveedor
 
-    [Required]
-    [StringLength(2)]
-    [RegularExpression("^(01|02|99)$", ErrorMessage = "PROSIT solo permite 01, 02 o 99")]
-    public string PROSIT { get; set; } = string.Empty; // Situación Proveedor (01/02/99)
+        [StringLength(40)]
+        public string PRMAIL { get; set; } = string.Empty; // Correo del proveedor
+
+        [Required]
+        [StringLength(2)]
+        [RegularExpression("^(PJ|NI|ND)$", ErrorMessage = "PROTIP solo permite PJ, NI o ND")]
+        public string PROTIP { get; set; } = string.Empty; // Tipo de proveedor
+
+        // Tabla adicional TPROA
+        [StringLength(2)]
+        public string PATIDE { get; set; } = string.Empty; // Tipo de documento (RU/DN/CE/OD)
+
+        [StringLength(15)]
+        public string PANIDE { get; set; } = string.Empty; // Número de documento
+
+        [StringLength(6)]
+        public string PAUBIG { get; set; } = string.Empty; // Código de ubigeo
+
+        [Required]
+        [StringLength(2)]
+        [RegularExpression("^(01|02|99)$", ErrorMessage = "PROSIT solo permite 01, 02 o 99")]
+        public string PROSIT { get; set; } = string.Empty; // Situación Proveedor (01/02/99)
 
         [Required]
         [RegularExpression("^[SN]$", ErrorMessage = "PRORF1 debe ser 'S' o 'N'")]

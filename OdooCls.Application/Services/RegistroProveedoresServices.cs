@@ -70,6 +70,14 @@ namespace OdooCls.Application.Services
                 if (are != "S" && are != "N")
                     return new ApiResponse<RegistroProveedoresDto>(400, 4005, "PROARE (Acepta Recojos) debe ser 'S' o 'N'");
 
+                var extendedValidation = ValidateExtendedData(dto);
+                if (extendedValidation != null)
+                    return extendedValidation;
+
+                dto.PROSIT = sit;
+                dto.PRORF1 = rf1;
+                dto.PROARE = are;
+
                 var entity = RegistroProveedoresMapper.DtoToEntity(dto);
                 var ok = await repo.InsertTprov(entity);
                 if (ok)
@@ -108,7 +116,38 @@ namespace OdooCls.Application.Services
                 if (!allowedSit.Contains(sit))
                     return new ApiResponse<RegistroProveedoresDto>(400, 4002, "PROSIT debe ser uno de: 01 (Activo), 02 (Bloqueado), 99 (Anulado)");
 
-                var ok = await repo.UpdateNombreYSituacion(dto.PROCVE, dto.PRONOM, dto.PROSIT);
+                // Validar que el RUC no pertenezca a otro proveedor o cliente.
+                if (!string.IsNullOrWhiteSpace(dto.PRORUC))
+                {
+                    var existingProcve = await repo.GetProcveByRuc(dto.PRORUC);
+                    var existingClicve = await repo.GetCliCveByRuc(dto.PRORUC);
+
+                    if ((!string.IsNullOrWhiteSpace(existingProcve) &&
+                         !string.Equals(existingProcve.Trim(), dto.PROCVE.Trim(), StringComparison.OrdinalIgnoreCase)) ||
+                        !string.IsNullOrWhiteSpace(existingClicve))
+                    {
+                        return new ApiResponse<RegistroProveedoresDto>(400, 4007, $"El RUC {dto.PRORUC} ya está registrado en otro proveedor o cliente");
+                    }
+                }
+
+                var rf1 = (dto.PRORF1 ?? string.Empty).Trim().ToUpperInvariant();
+                if (rf1 != "S" && rf1 != "N")
+                    return new ApiResponse<RegistroProveedoresDto>(400, 4008, "PRORF1 (Aplica Retención) debe ser 'S' o 'N'");
+
+                var are = (dto.PROARE ?? string.Empty).Trim().ToUpperInvariant();
+                if (are != "S" && are != "N")
+                    return new ApiResponse<RegistroProveedoresDto>(400, 4009, "PROARE (Acepta Recojos) debe ser 'S' o 'N'");
+
+                var extendedValidation = ValidateExtendedData(dto);
+                if (extendedValidation != null)
+                    return extendedValidation;
+
+                dto.PROSIT = sit;
+                dto.PRORF1 = rf1;
+                dto.PROARE = are;
+
+                var entity = RegistroProveedoresMapper.DtoToEntity(dto);
+                var ok = await repo.UpdateTprov(entity);
                 if (ok)
                     return new ApiResponse<RegistroProveedoresDto>(200, 1000, "Proveedor actualizado correctamente");
 
@@ -141,6 +180,11 @@ namespace OdooCls.Application.Services
                     PRODPT = x.PRODPT,
                     PROPAI = x.PROPAI,
                     PRORUC = x.PRORUC,
+                    PRMAIL = x.PRMAIL,
+                    PROTIP = x.PROTIP,
+                    PATIDE = x.PATIDE,
+                    PANIDE = x.PANIDE,
+                    PAUBIG = x.PAUBIG,
                     PROSIT = x.PROSIT,
                     PRORF1 = x.PRORF1,
                     PROARE = x.PROARE,
@@ -154,6 +198,39 @@ namespace OdooCls.Application.Services
             {
                 return new ApiResponse<PaginationResponseDto<RegistroProveedoresDto>>(500, 500, $"Error interno del servidor: {ex.Message}");
             }
+        }
+
+        private static ApiResponse<RegistroProveedoresDto>? ValidateExtendedData(RegistroProveedoresDto dto)
+        {
+            var tipoDocumento = (dto.PATIDE ?? string.Empty).Trim().ToUpperInvariant();
+            var numeroDocumento = (dto.PANIDE ?? string.Empty).Trim();
+            var ubigeo = (dto.PAUBIG ?? string.Empty).Trim();
+
+            if (string.IsNullOrEmpty(tipoDocumento) != string.IsNullOrEmpty(numeroDocumento))
+                return new ApiResponse<RegistroProveedoresDto>(400, 4010, "PATIDE y PANIDE deben enviarse juntos");
+
+            if (!string.IsNullOrEmpty(ubigeo) && (ubigeo.Length != 6 || !ubigeo.All(char.IsDigit)))
+                return new ApiResponse<RegistroProveedoresDto>(400, 4011, "PAUBIG debe contener exactamente 6 dígitos");
+
+            dto.PATIDE = tipoDocumento;
+            dto.PANIDE = numeroDocumento;
+            dto.PAUBIG = ubigeo;
+            dto.PRMAIL = (dto.PRMAIL ?? string.Empty).Trim();
+            dto.PROTIP = (dto.PROTIP ?? string.Empty).Trim().ToUpperInvariant();
+
+            if (string.IsNullOrEmpty(dto.PROTIP))
+            {
+                return new ApiResponse<RegistroProveedoresDto>(400, 4012,
+                    "PROTIP (Tipo de proveedor) es obligatorio");
+            }
+
+            if (dto.PROTIP != "PJ" && dto.PROTIP != "NI" && dto.PROTIP != "ND")
+            {
+                return new ApiResponse<RegistroProveedoresDto>(400, 4012,
+                    "PROTIP solo permite PJ (Persona Jurídica), NI (Persona Natural/Individual) o ND (No Domiciliado)");
+            }
+
+            return null;
         }
 
         public async Task<ApiResponse<RegistroProveedoresDto>> GetByIdAsync(string id)
@@ -178,6 +255,11 @@ namespace OdooCls.Application.Services
                     PRODPT = row.PRODPT,
                     PROPAI = row.PROPAI,
                     PRORUC = row.PRORUC,
+                    PRMAIL = row.PRMAIL,
+                    PROTIP = row.PROTIP,
+                    PATIDE = row.PATIDE,
+                    PANIDE = row.PANIDE,
+                    PAUBIG = row.PAUBIG,
                     PROSIT = row.PROSIT,
                     PRORF1 = row.PRORF1,
                     PROARE = row.PROARE,

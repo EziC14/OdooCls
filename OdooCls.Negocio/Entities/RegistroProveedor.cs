@@ -11,6 +11,11 @@ namespace OdooCls.Core.Entities
         public string PRODPT { get; set; } = string.Empty;
         public string PROPAI { get; set; } = string.Empty;
         public string PRORUC { get; set; } = string.Empty;
+        public string PRMAIL { get; set; } = string.Empty;
+        public string PROTIP { get; set; } = string.Empty;
+        public string PATIDE { get; set; } = string.Empty;
+        public string PANIDE { get; set; } = string.Empty;
+        public string PAUBIG { get; set; } = string.Empty;
         public string PROSIT { get; set; } = string.Empty;
         public string PRORF1 { get; set; } = string.Empty; // Aplica Retención (S/N)
         public string PROARE { get; set; } = string.Empty; // Acepta Recojos (S/N)

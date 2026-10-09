@@ -49,8 +49,8 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<bool> InsertTprov(RegistroProveedor p)
         {
             string query = $@"insert into {library}.tprov 
-                (PROCVE, PRONOM, PRODIR, PROCPO, PRODIS, PROPRO, PRODPT, PROPAI, PRORUC, PROSIT, PRORF1, PROARE, CPACVE)
-                values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                (PROCVE, PRONOM, PRODIR, PROCPO, PRODIS, PROPRO, PRODPT, PROPAI, PRORUC, PRMAIL, PROTIP, PROSIT, PRORF1, PROARE, CPACVE)
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             try
             {
                 using var cn = new OdbcConnection(connectionString);
@@ -70,11 +70,14 @@ namespace OdooCls.Infrastucture.Repositorys
                 cmd.Parameters.AddWithValue("@PRODPT", p.PRODPT);
                 cmd.Parameters.AddWithValue("@PROPAI", p.PROPAI);
                 cmd.Parameters.AddWithValue("@PRORUC", p.PRORUC);
+                cmd.Parameters.AddWithValue("@PRMAIL", p.PRMAIL);
+                cmd.Parameters.AddWithValue("@PROTIP", p.PROTIP);
                 cmd.Parameters.AddWithValue("@PROSIT", p.PROSIT);
                 cmd.Parameters.AddWithValue("@PRORF1", p.PRORF1);
                 cmd.Parameters.AddWithValue("@PROARE", p.PROARE);
                 cmd.Parameters.AddWithValue("@CPACVE", p.CPACVE);
                 await cmd.ExecuteNonQueryAsync();
+                await UpsertTproa(cn, p);
                 return true;
             }
             catch (Exception ex)
@@ -84,9 +87,12 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
-        public async Task<bool> UpdateNombreYSituacion(string procve, string nombre, string situacion)
+        public async Task<bool> UpdateTprov(RegistroProveedor p)
         {
-            string query = $@"update {library}.tprov set PRONOM=?, PROSIT=? where PROCVE=?";
+            string query = $@"update {library}.tprov set
+                PRONOM=?, PRODIR=?, PROCPO=?, PRODIS=?, PROPRO=?, PRODPT=?, PROPAI=?,
+                PRORUC=?, PRMAIL=?, PROTIP=?, PROSIT=?, PRORF1=?, PROARE=?, CPACVE=?
+                where PROCVE=?";
             try
             {
                 using var cn = new OdbcConnection(connectionString);
@@ -97,16 +103,56 @@ namespace OdooCls.Infrastucture.Repositorys
                     return false;
                 
                 cmd.CommandType = CommandType.Text;
-                cmd.Parameters.AddWithValue("@PRONOM", nombre);
-                cmd.Parameters.AddWithValue("@PROSIT", situacion);
-                cmd.Parameters.AddWithValue("@PROCVE", procve);
-                await cmd.ExecuteNonQueryAsync();
+                cmd.Parameters.AddWithValue("@PRONOM", p.PRONOM);
+                cmd.Parameters.AddWithValue("@PRODIR", p.PRODIR);
+                cmd.Parameters.AddWithValue("@PROCPO", p.PROCPO);
+                cmd.Parameters.AddWithValue("@PRODIS", p.PRODIS);
+                cmd.Parameters.AddWithValue("@PROPRO", p.PROPRO);
+                cmd.Parameters.AddWithValue("@PRODPT", p.PRODPT);
+                cmd.Parameters.AddWithValue("@PROPAI", p.PROPAI);
+                cmd.Parameters.AddWithValue("@PRORUC", p.PRORUC);
+                cmd.Parameters.AddWithValue("@PRMAIL", p.PRMAIL);
+                cmd.Parameters.AddWithValue("@PROTIP", p.PROTIP);
+                cmd.Parameters.AddWithValue("@PROSIT", p.PROSIT);
+                cmd.Parameters.AddWithValue("@PRORF1", p.PRORF1);
+                cmd.Parameters.AddWithValue("@PROARE", p.PROARE);
+                cmd.Parameters.AddWithValue("@CPACVE", p.CPACVE);
+                cmd.Parameters.AddWithValue("@PROCVE", p.PROCVE);
+                var affected = await cmd.ExecuteNonQueryAsync();
+                if (affected <= 0)
+                    return false;
+
+                await UpsertTproa(cn, p);
                 return true;
             }
             catch
             {
                 return false;
             }
+        }
+
+        private async Task UpsertTproa(OdbcConnection cn, RegistroProveedor p)
+        {
+            string update = $@"update {library}.tproa
+                set PATIDE=?, PANIDE=?, PAUBIG=? where PACODI=?";
+            using var updateCmd = new OdbcCommand(update, cn);
+            updateCmd.Parameters.AddWithValue("@PATIDE", p.PATIDE);
+            updateCmd.Parameters.AddWithValue("@PANIDE", p.PANIDE);
+            updateCmd.Parameters.AddWithValue("@PAUBIG", p.PAUBIG);
+            updateCmd.Parameters.AddWithValue("@PACODI", p.PROCVE);
+
+            var affected = await updateCmd.ExecuteNonQueryAsync();
+            if (affected > 0)
+                return;
+
+            string insert = $@"insert into {library}.tproa
+                (PACODI, PATIDE, PANIDE, PAUBIG) values (?,?,?,?)";
+            using var insertCmd = new OdbcCommand(insert, cn);
+            insertCmd.Parameters.AddWithValue("@PACODI", p.PROCVE);
+            insertCmd.Parameters.AddWithValue("@PATIDE", p.PATIDE);
+            insertCmd.Parameters.AddWithValue("@PANIDE", p.PANIDE);
+            insertCmd.Parameters.AddWithValue("@PAUBIG", p.PAUBIG);
+            await insertCmd.ExecuteNonQueryAsync();
         }
 
         public async Task<bool> ExisteProveedor(string procve)
@@ -206,9 +252,12 @@ namespace OdooCls.Infrastucture.Repositorys
         public async Task<List<RegistroProveedor>> GetAllProveedores(int page, int pageSize)
         {
             int offset = (page - 1) * pageSize;
-            string query = $@"select PROCVE, PRONOM, PRODIR, PROCPO, PRODIS, PROPRO, PRODPT, PROPAI, PRORUC, PROSIT, PRORF1, PROARE, CPACVE
-                              from {library}.tprov
-                              order by PROCVE
+            string query = $@"select P.PROCVE, P.PRONOM, P.PRODIR, P.PROCPO, P.PRODIS, P.PROPRO, P.PRODPT, P.PROPAI,
+                                     P.PRORUC, P.PRMAIL, P.PROTIP, P.PROSIT, P.PRORF1, P.PROARE, P.CPACVE,
+                                     A.PATIDE, A.PANIDE, A.PAUBIG
+                              from {library}.tprov P
+                              left join {library}.tproa A on A.PACODI=P.PROCVE
+                              order by P.PROCVE
                               offset {offset} rows fetch next {pageSize} rows only";
             var result = new List<RegistroProveedor>();
             using var cn = new OdbcConnection(connectionString);
@@ -232,6 +281,11 @@ namespace OdooCls.Infrastucture.Repositorys
                     PRODPT = reader["PRODPT"]?.ToString() ?? string.Empty,
                     PROPAI = reader["PROPAI"]?.ToString() ?? string.Empty,
                     PRORUC = reader["PRORUC"]?.ToString() ?? string.Empty,
+                    PRMAIL = reader["PRMAIL"]?.ToString() ?? string.Empty,
+                    PROTIP = reader["PROTIP"]?.ToString() ?? string.Empty,
+                    PATIDE = reader["PATIDE"]?.ToString() ?? string.Empty,
+                    PANIDE = reader["PANIDE"]?.ToString() ?? string.Empty,
+                    PAUBIG = reader["PAUBIG"]?.ToString() ?? string.Empty,
                     PROSIT = reader["PROSIT"]?.ToString() ?? string.Empty,
                     PRORF1 = reader["PRORF1"]?.ToString() ?? string.Empty,
                     PROARE = reader["PROARE"]?.ToString() ?? string.Empty,
@@ -258,8 +312,12 @@ namespace OdooCls.Infrastucture.Repositorys
 
         public async Task<RegistroProveedor?> GetProveedorById(string procve)
         {
-            string query = $@"select PROCVE, PRONOM, PRODIR, PROCPO, PRODIS, PROPRO, PRODPT, PROPAI, PRORUC, PROSIT, PRORF1, PROARE, CPACVE
-                              from {library}.tprov where PROCVE=?";
+            string query = $@"select P.PROCVE, P.PRONOM, P.PRODIR, P.PROCPO, P.PRODIS, P.PROPRO, P.PRODPT, P.PROPAI,
+                                     P.PRORUC, P.PRMAIL, P.PROTIP, P.PROSIT, P.PRORF1, P.PROARE, P.CPACVE,
+                                     A.PATIDE, A.PANIDE, A.PAUBIG
+                              from {library}.tprov P
+                              left join {library}.tproa A on A.PACODI=P.PROCVE
+                              where P.PROCVE=?";
             using var cn = new OdbcConnection(connectionString);
             using var cmd = new OdbcCommand(query, cn);
             await cn.OpenAsync();
@@ -283,6 +341,11 @@ namespace OdooCls.Infrastucture.Repositorys
                 PRODPT = reader["PRODPT"]?.ToString() ?? string.Empty,
                 PROPAI = reader["PROPAI"]?.ToString() ?? string.Empty,
                 PRORUC = reader["PRORUC"]?.ToString() ?? string.Empty,
+                PRMAIL = reader["PRMAIL"]?.ToString() ?? string.Empty,
+                PROTIP = reader["PROTIP"]?.ToString() ?? string.Empty,
+                PATIDE = reader["PATIDE"]?.ToString() ?? string.Empty,
+                PANIDE = reader["PANIDE"]?.ToString() ?? string.Empty,
+                PAUBIG = reader["PAUBIG"]?.ToString() ?? string.Empty,
                 PROSIT = reader["PROSIT"]?.ToString() ?? string.Empty,
                 PRORF1 = reader["PRORF1"]?.ToString() ?? string.Empty,
                 PROARE = reader["PROARE"]?.ToString() ?? string.Empty,
