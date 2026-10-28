@@ -31,25 +31,16 @@ namespace OdooCls.Application.Services
                         Detail = new { codigo = dto.PROCVE }
                     };
 
-                // Validar RUC único en proveedores y clientes
+                // Validar RUC único en proveedores. Puede existir como cliente.
                 if (!string.IsNullOrWhiteSpace(dto.PRORUC))
                 {
                     var existingProcve = await repo.GetProcveByRuc(dto.PRORUC);
-                    var existingClicve = await repo.GetCliCveByRuc(dto.PRORUC);
-                    
-                    if (existingProcve != null || existingClicve != null)
+
+                    if (existingProcve != null)
                     {
-                        object detail;
-                        if (existingProcve != null && existingClicve != null)
-                            detail = new { ruc = dto.PRORUC, codigo_proveedor = existingProcve, codigo_cliente = existingClicve };
-                        else if (existingProcve != null)
-                            detail = new { ruc = dto.PRORUC, codigo_proveedor = existingProcve };
-                        else
-                            detail = new { ruc = dto.PRORUC, codigo_cliente = existingClicve };
-                        
-                        return new ApiResponse<RegistroProveedoresDto>(400, 4003, $"El RUC {dto.PRORUC} ya está registrado")
+                        return new ApiResponse<RegistroProveedoresDto>(400, 4003, $"El RUC {dto.PRORUC} ya está registrado como proveedor {existingProcve.Trim()}")
                         {
-                            Detail = detail
+                            Detail = new { ruc = dto.PRORUC, codigo_proveedor = existingProcve }
                         };
                     }
                 }
@@ -116,17 +107,15 @@ namespace OdooCls.Application.Services
                 if (!allowedSit.Contains(sit))
                     return new ApiResponse<RegistroProveedoresDto>(400, 4002, "PROSIT debe ser uno de: 01 (Activo), 02 (Bloqueado), 99 (Anulado)");
 
-                // Validar que el RUC no pertenezca a otro proveedor o cliente.
+                // Validar que el RUC no pertenezca a otro proveedor. Puede existir como cliente.
                 if (!string.IsNullOrWhiteSpace(dto.PRORUC))
                 {
                     var existingProcve = await repo.GetProcveByRuc(dto.PRORUC);
-                    var existingClicve = await repo.GetCliCveByRuc(dto.PRORUC);
 
-                    if ((!string.IsNullOrWhiteSpace(existingProcve) &&
-                         !string.Equals(existingProcve.Trim(), dto.PROCVE.Trim(), StringComparison.OrdinalIgnoreCase)) ||
-                        !string.IsNullOrWhiteSpace(existingClicve))
+                    if (!string.IsNullOrWhiteSpace(existingProcve) &&
+                        !string.Equals(existingProcve.Trim(), dto.PROCVE.Trim(), StringComparison.OrdinalIgnoreCase))
                     {
-                        return new ApiResponse<RegistroProveedoresDto>(400, 4007, $"El RUC {dto.PRORUC} ya está registrado en otro proveedor o cliente");
+                        return new ApiResponse<RegistroProveedoresDto>(400, 4007, $"El RUC {dto.PRORUC} ya está registrado en otro proveedor {existingProcve.Trim()}");
                     }
                 }
 
