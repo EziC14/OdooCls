@@ -93,7 +93,15 @@ namespace OdooCls.Application.Services
                 Itregv = await Registro.InsertTregvAndCtxc(ventas);
                 if (Itregv == true)
                 {
-                    return new ApiResponse<RegistroVentasDto>(200, 1000, $"Documento registrado en el Registro de Ventas");
+                    rvdto.TREGVCreado = true;
+                    rvdto.TREGVDCreado = true;
+                    rvdto.TCTXCCreado = true;
+
+                    return new ApiResponse<RegistroVentasDto>(
+                        200,
+                        1000,
+                        $"Venta, detalle y cuenta por cobrar registrados correctamente. Documento: {rvdto.RVNDOC}",
+                        rvdto);
                 }
                 else
                 {

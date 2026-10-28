@@ -145,6 +145,8 @@ namespace OdooCls.Infrastucture.Repositorys
                     }
 
                     await InsertCtxCInConnection(cn, tx, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC, registroVentas.CCCTAC);
+                    int detallesEsperados = registroVentas.RegistroVentasDetail?.Count ?? 0;
+                    await ValidarInsercionVentaCompleta(cn, tx, registroVentas, detallesEsperados);
                     tx.Commit();
                     return true;
                 }
@@ -162,15 +164,32 @@ namespace OdooCls.Infrastucture.Repositorys
 
                         await CleanupPartialSalesInserts(cn, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
 
-                        await InsertTregvHeaderInConnection(cn, null, registroVentas);
-
-                        foreach (var item in registroVentas.RegistroVentasDetail ?? Enumerable.Empty<RegistroVentasDetail>())
+                        try
                         {
-                            await InsertTregvDInConnection(cn, null, item);
-                        }
+                            await InsertTregvHeaderInConnection(cn, null, registroVentas);
 
-                        await InsertCtxCInConnection(cn, null, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC, registroVentas.CCCTAC);
-                        return true;
+                            foreach (var item in registroVentas.RegistroVentasDetail ?? Enumerable.Empty<RegistroVentasDetail>())
+                            {
+                                await InsertTregvDInConnection(cn, null, item);
+                            }
+
+                            await InsertCtxCInConnection(cn, null, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC, registroVentas.CCCTAC);
+                            int detallesEsperados = registroVentas.RegistroVentasDetail?.Count ?? 0;
+                            await ValidarInsercionVentaCompleta(cn, null, registroVentas, detallesEsperados);
+                            return true;
+                        }
+                        catch
+                        {
+                            try
+                            {
+                                await CleanupPartialSalesInserts(cn, registroVentas.RVEJER, registroVentas.RVPERI, registroVentas.RVTDOC, registroVentas.RVNDOC);
+                            }
+                            catch
+                            {
+                            }
+
+                            throw;
+                        }
                     }
 
                     try
@@ -219,6 +238,60 @@ namespace OdooCls.Infrastucture.Repositorys
             catch (Exception ex)
             {
                 throw new Exception($"Error al insertar cabecera TREGV: {ex.Message}", ex);
+            }
+        }
+
+        private async Task ValidarInsercionVentaCompleta(
+            OdbcConnection connection,
+            OdbcTransaction? transaction,
+            RegistroVentas venta,
+            int detallesEsperados)
+        {
+            string query = $@"
+                SELECT
+                    (SELECT COUNT(*)
+                       FROM {library}.TREGV
+                      WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?) AS EXISTE_TREGV,
+                    (SELECT COUNT(*)
+                       FROM {library}.TREGVD
+                      WHERE RVEJER = ? AND RVPERI = ? AND RVTDOC = ? AND RVNDOC = ?) AS EXISTE_TREGVD,
+                    (SELECT COUNT(*)
+                       FROM {library}.TCTXC
+                      WHERE CCEJER = ? AND CCPERI = ? AND CCTDOC = ? AND CCNDOC = ?) AS EXISTE_TCTXC
+                  FROM SYSIBM.SYSDUMMY1";
+
+            using var command = new OdbcCommand(query, connection);
+            if (transaction != null)
+                command.Transaction = transaction;
+
+            command.Parameters.AddWithValue("@TREGV_EJER", venta.RVEJER);
+            command.Parameters.AddWithValue("@TREGV_PERI", venta.RVPERI);
+            command.Parameters.AddWithValue("@TREGV_TDOC", venta.RVTDOC);
+            command.Parameters.AddWithValue("@TREGV_NDOC", venta.RVNDOC);
+            command.Parameters.AddWithValue("@TREGVD_EJER", venta.RVEJER);
+            command.Parameters.AddWithValue("@TREGVD_PERI", venta.RVPERI);
+            command.Parameters.AddWithValue("@TREGVD_TDOC", venta.RVTDOC);
+            command.Parameters.AddWithValue("@TREGVD_NDOC", venta.RVNDOC);
+            command.Parameters.AddWithValue("@TCTXC_EJER", venta.RVEJER);
+            command.Parameters.AddWithValue("@TCTXC_PERI", venta.RVPERI);
+            command.Parameters.AddWithValue("@TCTXC_TDOC", venta.RVTDOC);
+            command.Parameters.AddWithValue("@TCTXC_NDOC", venta.RVNDOC);
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+                throw new InvalidOperationException("No se pudo validar el registro completo de la venta.");
+
+            int registrosTregv = Convert.ToInt32(reader.GetValue(0));
+            int registrosTregvd = Convert.ToInt32(reader.GetValue(1));
+            int registrosTctxc = Convert.ToInt32(reader.GetValue(2));
+
+            if (registrosTregv != 1 || registrosTregvd != detallesEsperados || registrosTctxc != 1)
+            {
+                throw new InvalidOperationException(
+                    $"Validación posterior fallida para {venta.RVTDOC}-{venta.RVNDOC}: " +
+                    $"TREGV={registrosTregv} (esperado 1), " +
+                    $"TREGVD={registrosTregvd} (esperado {detallesEsperados}), " +
+                    $"TCTXC={registrosTctxc} (esperado 1).");
             }
         }
 

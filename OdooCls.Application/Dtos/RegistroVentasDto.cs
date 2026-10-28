@@ -67,6 +67,12 @@ namespace OdooCls.Application.Dtos
         public int RVFEIN { get; set; } = 0;
         public int RVHOIN { get; set; } = 0;
         public List<RegistroVentasDetailDto>? detalle { get; set; } = null;
+
+        // Confirmaciones devueltas por la API después de validar el registro completo.
+        // No son obligatorias en el payload de entrada.
+        public bool TREGVCreado { get; set; } = false;
+        public bool TREGVDCreado { get; set; } = false;
+        public bool TCTXCCreado { get; set; } = false;
       
     }
 }

@@ -223,6 +223,8 @@ namespace OdooCls.Infrastucture.Repositorys
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             OdbcTransaction? transaction = null;
             OdbcConnection? cn = null;
+            // RCXP de la cabecera; null mientras no se haya insertado nada.
+            string? rcxpCabecera = null;
             try
             {
                 ValidateInsertPlaceholders(queryTregc, 46);
@@ -236,6 +238,7 @@ namespace OdooCls.Infrastucture.Repositorys
                 int ultimoCorrelativo = await ObtenerUltimoCorrelativoRegxp(cn, transaction, registro.RCEJER, registro.RCPERI);
                 int correlativoBase = checked(ultimoCorrelativo + 1);
                 registro.RCRCXP = BuildRcxp(registro.RCEJER, registro.RCPERI, correlativoBase);
+                rcxpCabecera = registro.RCRCXP;
 
                 using (var cmdTregc = new OdbcCommand(queryTregc, cn))
                 {
@@ -294,6 +297,13 @@ namespace OdooCls.Infrastucture.Repositorys
                 }
 
                 int ultimoCorrelativoUsado = await InsertCtxpInConnection(cn, transaction, registro, correlativoBase);
+                // En detracciones InsertCtxpInConnection usa temporalmente el RCXP siguiente
+                // para la fila 99. La cabecera siempre debe conservar y devolver su RCXP original.
+                registro.RCRCXP = rcxpCabecera;
+
+                int cuentasPorPagarEsperadas = EsTipoDetraccion(registro.RCTDOC) && registro.RCRET1 > 0 ? 2 : 1;
+                await ValidarInsercionRcCtxp(cn, transaction, registro, cuentasPorPagarEsperadas);
+
                 await ActualizarCorrelativoRegxp(cn, transaction, registro.RCEJER, registro.RCPERI,
                     ultimoCorrelativo, ultimoCorrelativoUsado);
                 transaction.Commit();
@@ -303,14 +313,14 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 string diag = BuildOdbcDiagnostics(ex);
                 try { transaction?.Rollback(); } catch { }
-                if (cn != null) try { await CleanupPartialPurchasesInserts(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP ?? ""); } catch { }
+                if (cn != null && rcxpCabecera != null) try { await CleanupPartialPurchasesInserts(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCCPRO, rcxpCabecera); } catch { }
 
                 throw new Exception($"[InsertTregcAndCtxp] ODBC {diag}", ex);
             }
             catch (Exception ex)
             {
                 try { transaction?.Rollback(); } catch { }
-                if (cn != null) try { await CleanupPartialPurchasesInserts(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCRCXP ?? ""); } catch { }
+                if (cn != null && rcxpCabecera != null) try { await CleanupPartialPurchasesInserts(cn, registro.RCEJER, registro.RCPERI, registro.RCTDOC, registro.RCNDOC, registro.RCCPRO, rcxpCabecera); } catch { }
 
                 throw new Exception($"[InsertTregcAndCtxp] {ex.Message}", ex);
             }
@@ -318,6 +328,56 @@ namespace OdooCls.Infrastucture.Repositorys
             {
                 transaction?.Dispose();
                 cn?.Dispose();
+            }
+        }
+
+        private async Task ValidarInsercionRcCtxp(
+            OdbcConnection connection,
+            OdbcTransaction transaction,
+            RegistroCompras registro,
+            int cuentasPorPagarEsperadas)
+        {
+            string query = $@"
+                SELECT
+                    (SELECT COUNT(*)
+                       FROM {library}.TREGC
+                      WHERE RCEJER = ?
+                        AND RCPERI = ?
+                        AND RCTDOC = ?
+                        AND RCNDOC = ?
+                        AND RCCPRO = ?) AS EXISTE_TREGC,
+                    (SELECT COUNT(*)
+                       FROM {library}.TCTXP
+                      WHERE XPEJER = ?
+                        AND XPPERI = ?
+                        AND XPNDOC = ?
+                        AND XPCPRO = ?) AS EXISTE_TCTXP
+                  FROM SYSIBM.SYSDUMMY1";
+
+            using var command = new OdbcCommand(query, connection, transaction);
+            command.Parameters.AddWithValue("@RCEJER", registro.RCEJER);
+            command.Parameters.AddWithValue("@RCPERI", registro.RCPERI);
+            command.Parameters.AddWithValue("@RCTDOC", Trunc(registro.RCTDOC, 2));
+            command.Parameters.AddWithValue("@RCNDOC", Trunc(registro.RCNDOC, 15));
+            command.Parameters.AddWithValue("@RCCPRO", Trunc(registro.RCCPRO, 10));
+            command.Parameters.AddWithValue("@XPEJER", registro.RCEJER);
+            command.Parameters.AddWithValue("@XPPERI", registro.RCPERI);
+            command.Parameters.AddWithValue("@XPNDOC", Trunc(registro.RCNDOC, 15));
+            command.Parameters.AddWithValue("@XPCPRO", Trunc(registro.RCCPRO, 10));
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+                throw new InvalidOperationException("No se pudo validar la creación del RC y la cuenta por pagar.");
+
+            int registrosRc = Convert.ToInt32(reader.GetValue(0));
+            int registrosCxp = Convert.ToInt32(reader.GetValue(1));
+
+            if (registrosRc != 1 || registrosCxp != cuentasPorPagarEsperadas)
+            {
+                throw new InvalidOperationException(
+                    $"Validación posterior fallida para {registro.RCTDOC}-{registro.RCNDOC}: " +
+                    $"TREGC={registrosRc} (esperado 1), " +
+                    $"TCTXP={registrosCxp} (esperado {cuentasPorPagarEsperadas}).");
             }
         }
 
@@ -602,19 +662,28 @@ namespace OdooCls.Infrastucture.Repositorys
             }
         }
 
-        private async Task CleanupPartialPurchasesInserts(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc, string rcxpx)
+        private async Task CleanupPartialPurchasesInserts(OdbcConnection cn, int ejercicio, int mes, string tipodoc, string nrodoc, string codprov, string rcxpx)
         {
-            string deleteTctxp99 = $@"DELETE FROM {library}.TCTXP WHERE XPEJER = ? AND XPPERI = ? AND XPTDOC = '99' AND XPNDOC = ?";
-            string deleteTctxp = $@"DELETE FROM {library}.TCTXP WHERE XPEJER = ? AND XPPERI = ? AND XPTDOC = ? AND XPNDOC = ?";
+            // Se filtra por proveedor y RCXP para no borrar cuentas por pagar de otro
+            // proveedor con el mismo número de documento, ni registros previos.
+            string deleteTctxp99 = $@"DELETE FROM {library}.TCTXP WHERE XPEJER = ? AND XPPERI = ? AND XPTDOC = '99' AND XPNDOC = ? AND XPCPRO = ? AND XPRCXP = ?";
+            string deleteTctxp = $@"DELETE FROM {library}.TCTXP WHERE XPEJER = ? AND XPPERI = ? AND XPTDOC = ? AND XPNDOC = ? AND XPCPRO = ? AND XPRCXP = ?";
             string deleteTregc = $@"DELETE FROM {library}.TREGC WHERE RCEJER = ? AND RCPERI = ? AND RCTDOC = ? AND RCNDOC = ? AND RCRCXP = ?";
 
-            using (OdbcCommand cmd99 = new OdbcCommand(deleteTctxp99, cn))
+            if (EsTipoDetraccion(tipodoc))
             {
-                cmd99.CommandType = CommandType.Text;
-                cmd99.Parameters.AddWithValue("@XPEJER", ejercicio);
-                cmd99.Parameters.AddWithValue("@XPPERI", mes);
-                cmd99.Parameters.AddWithValue("@XPNDOC", Trunc(nrodoc, 15));
-                await cmd99.ExecuteNonQueryAsync();
+                // La fila 99 de la detracción usa el RCXP siguiente al de la cabecera.
+                string rcxp99 = ObtenerRcxpSiguiente(rcxpx);
+                using (OdbcCommand cmd99 = new OdbcCommand(deleteTctxp99, cn))
+                {
+                    cmd99.CommandType = CommandType.Text;
+                    cmd99.Parameters.AddWithValue("@XPEJER", ejercicio);
+                    cmd99.Parameters.AddWithValue("@XPPERI", mes);
+                    cmd99.Parameters.AddWithValue("@XPNDOC", Trunc(nrodoc, 15));
+                    cmd99.Parameters.AddWithValue("@XPCPRO", Trunc(codprov, 10));
+                    cmd99.Parameters.AddWithValue("@XPRCXP", Trunc(rcxp99, 10));
+                    await cmd99.ExecuteNonQueryAsync();
+                }
             }
 
             using (OdbcCommand cmd1 = new OdbcCommand(deleteTctxp, cn))
@@ -624,6 +693,8 @@ namespace OdooCls.Infrastucture.Repositorys
                 cmd1.Parameters.AddWithValue("@XPPERI", mes);
                 cmd1.Parameters.AddWithValue("@XPTDOC", Trunc(tipodoc, 2));
                 cmd1.Parameters.AddWithValue("@XPNDOC", Trunc(nrodoc, 15));
+                cmd1.Parameters.AddWithValue("@XPCPRO", Trunc(codprov, 10));
+                cmd1.Parameters.AddWithValue("@XPRCXP", Trunc(rcxpx, 10));
                 await cmd1.ExecuteNonQueryAsync();
             }
 

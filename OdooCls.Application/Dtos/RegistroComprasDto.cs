@@ -58,5 +58,10 @@ namespace OdooCls.Application.Dtos
         public string RCREF7 { get; set; } = "";
         public string RCCBSA { get; set; } = "";
 
+        // Confirmaciones devueltas por la API después de validar la transacción.
+        // No son obligatorias en el payload de entrada.
+        public bool TREGCCreado { get; set; } = false;
+        public bool TCTXPCreado { get; set; } = false;
+
     }
 }

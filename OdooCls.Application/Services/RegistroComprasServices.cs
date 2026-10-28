@@ -111,7 +111,15 @@ namespace OdooCls.Application.Services
                 }
                 if (Itregc == true)
                 {
-                    return new ApiResponse<RegistroComprasDto>(200, 1000, $"Documentos Registrado en el RC");
+                    rcdto.RCRCXP = compras.RCRCXP;
+                    rcdto.TREGCCreado = true;
+                    rcdto.TCTXPCreado = true;
+
+                    return new ApiResponse<RegistroComprasDto>(
+                        200,
+                        1000,
+                        $"Compra y cuenta por pagar registradas correctamente. Documento: {rcdto.RCNDOC}; RCXP: {rcdto.RCRCXP}",
+                        rcdto);
                 }
                 else 
                 {
